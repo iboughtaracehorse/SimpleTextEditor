@@ -4,7 +4,7 @@
 
 enum Commands
 {
-	COMMAND_APPEND = 1,
+	COMMAND_APPEND,
 	COMMAND_INSERT,
 	COMMAND_NEW,
 	COMMAND_SAVE,
@@ -15,14 +15,17 @@ enum Commands
 	COMMAND_UNKNOWN
 };
 
-//void appendText(char** text, size_t initialSize, const char* newText);
+void appendText(char* text, size_t initialSize, const char* newText);
 void help();
 int getCommand(char* userInput);
+void printAllText(char** text, size_t numLines);
+size_t findTheEndOfTheText(char** text, size_t size);
 
 int main() {
 
-	char userInput[20];
+	char userInput[20]; // for commands only!
 	const size_t initialSize = 100;
+	const size_t bufferSize = 20;
 	char** text = (char**)malloc(initialSize * sizeof(char*));
 	// second dimension 
 	for (size_t i = 0; i < initialSize; i++) {
@@ -31,11 +34,12 @@ int main() {
 	}
 
 	strcpy_s(text[0], initialSize, "Hello");
-	strcpy_s(text[1], initialSize, "World");
+	strcpy_s(text[1], initialSize, "   ");
+	strcpy_s(text[2], initialSize, "World");
 
 	while (1)
 	{
-		printf("Enter a command or 'help' to see the list of available commands: ");
+		printf("\nEnter a command or 'help' to see the list of available commands: ");
 		scanf_s("%s", userInput, sizeof(userInput)); // sizeof does not allow scanf_s to read more chars
 
 		int command = getCommand(userInput);
@@ -43,7 +47,15 @@ int main() {
 		switch (command)
 		{
 		case COMMAND_APPEND: {
-			printf("Command is not available\n");
+			printf("Enter text to append: ");
+			char buffer[bufferSize];
+			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
+			{
+				size_t endline = findTheEndOfTheText(text, initialSize);
+				appendText(text[endline], bufferSize, buffer);
+				printf("Updated text:\n");
+				printAllText(text, initialSize);
+			}
 			break;
 		}case COMMAND_INSERT: {
 			printf("Command is not available\n");
@@ -55,7 +67,7 @@ int main() {
 			printf("Command is not available\n");
 			break;
 		}case COMMAND_LOAD: {
-			printf("Command is not available\n");
+			printAllText(text, initialSize);
 			break;
 		}case COMMAND_SEARCH: {
 			printf("Command is not available\n");
@@ -75,6 +87,7 @@ int main() {
 			break;
 		}
 	}
+
 
 	// Free the allocated memory
 	for (int i = 0; i < initialSize; i++)
@@ -132,6 +145,25 @@ int getCommand(char* userInput)
 	}
 }
 
-//void appendText(char* text, size_t initialSize, char* newText) {
-//	strncat_s(text[1], initialSize, newText);
-//}
+void appendText(char* text, size_t initialSize, const char* newText) {
+	strcat_s(text, initialSize, newText);
+}
+
+void printAllText(char** text, size_t numLines) {
+	for (size_t i = 0; i < numLines; ++i) {
+		if (text[i][0] != '\0') {
+			printf("%s\n", text[i]);
+		}
+	}
+}
+
+size_t findTheEndOfTheText(char** text, size_t size)
+{
+	size_t endline = size - 1; // for /0
+	while (endline > 0 && text[endline][0] == '\0')
+	{
+		endline--;
+	}
+
+	return endline;
+}
