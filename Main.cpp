@@ -15,7 +15,7 @@ enum Commands
 	COMMAND_UNKNOWN
 };
 
-void appendText(char** text, size_t initialSize, const char* newText);
+//void appendText(char** text, size_t initialSize, const char* newText);
 void help();
 int getCommand(char* userInput);
 
@@ -33,47 +33,47 @@ int main() {
 	strcpy_s(text[0], initialSize, "Hello");
 	strcpy_s(text[1], initialSize, "World");
 
-	while (true)
+	while (1)
 	{
 		printf("Enter a command or 'help' to see the list of available commands: ");
-		scanf_s("%s", userInput);
+		scanf_s("%s", userInput, sizeof(userInput));
 
 		int command = getCommand(userInput);
 
 		switch (command)
 		{
-			case COMMAND_APPEND: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_INSERT: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_NEW: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_SAVE: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_LOAD: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_SEARCH: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_HELP: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_EXIT: {
-				printf("Command is not available");
-				break;
-			}case COMMAND_UNKNOWN: {
-				printf("AAAAAAAAAAAAAAAAAAAA");
-				break;
-			}
-			default:
-				printf("Unknown command. Please try again: ");
-				break;
-			}
+		case COMMAND_APPEND: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_INSERT: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_NEW: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_SAVE: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_LOAD: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_SEARCH: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_HELP: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_EXIT: {
+			printf("Command is not available\n");
+			break;
+		}case COMMAND_UNKNOWN: {
+			printf("AAAAAAAAAAAAAAAAAAAA\n");
+			break;
+		}
+		default:
+			printf("Unknown command. Please try again: ");
+			break;
+		}
 	}
 
 	// Free the allocated memory
@@ -127,12 +127,11 @@ int getCommand(char* userInput)
 	}
 
 
-	 else {
+	else {
 		return COMMAND_UNKNOWN;
-		}
+	}
 }
 
 //void appendText(char* text, size_t initialSize, char* newText) {
 //	strncat_s(text[1], initialSize, newText);
 //}
-
