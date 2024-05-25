@@ -25,7 +25,7 @@ int main() {
 
 	char userInput[20]; // for commands only!
 	const size_t initialSize = 100;
-	const size_t bufferSize = 20;
+	const size_t bufferSize = 50;
 	char** text = (char**)malloc(initialSize * sizeof(char*));
 	// second dimension 
 	for (size_t i = 0; i < initialSize; i++) {
@@ -48,24 +48,32 @@ int main() {
 		{
 		case COMMAND_APPEND: {
 			printf("Enter text to append: ");
-			char buffer[bufferSize];
-			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
+			char newText[bufferSize];
+			if (scanf_s("%s", newText, sizeof(newText)) != NULL)
 			{
 				size_t endline = findTheEndOfTheText(text, initialSize);
-				appendText(text[endline], bufferSize, buffer);
-				printf("Updated text:\n");
-				printAllText(text, initialSize);
+				appendText(text[endline], bufferSize, newText);
 			}
 			break;
+
 		}case COMMAND_INSERT: {
-			printf("Command is not available\n");
+			char buffer[bufferSize];
+			printf("Enter placement in row_index format(e.g., 8_12): ");
+			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
+			{
+				int row, index;
+				char newText[bufferSize];
+				if (sscanf_s(buffer, "%d_%d", &row, &index, newText, sizeof(newText)) == 2)
+				{
+					printf("Insert is not implemented yet");
+				}
+				
+			}
 			break;
+
 		}case COMMAND_NEW: {
-			char buffer[2];
-			
 			size_t endline = findTheEndOfTheText(text, initialSize);
 			appendText(text[endline], bufferSize, "\n");
-			printAllText(text, initialSize);
 			
 			break;
 		}case COMMAND_SAVE: {
