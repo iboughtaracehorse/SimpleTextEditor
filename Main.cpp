@@ -61,7 +61,12 @@ int main() {
 			printf("Command is not available\n");
 			break;
 		}case COMMAND_NEW: {
-			printf("Command is not available\n");
+			char buffer[2];
+			
+			size_t endline = findTheEndOfTheText(text, initialSize);
+			appendText(text[endline], bufferSize, "\n");
+			printAllText(text, initialSize);
+			
 			break;
 		}case COMMAND_SAVE: {
 			printf("Command is not available\n");
@@ -77,9 +82,6 @@ int main() {
 			break;
 		}case COMMAND_EXIT: {
 			printf("Command is not available\n");
-			break;
-		}case COMMAND_UNKNOWN: {
-			printf("Unknown command. Please try again\n");
 			break;
 		}
 		default:
