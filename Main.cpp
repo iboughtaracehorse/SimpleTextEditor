@@ -36,7 +36,7 @@ int main() {
 	while (1)
 	{
 		printf("Enter a command or 'help' to see the list of available commands: ");
-		scanf_s("%s", userInput, sizeof(userInput));
+		scanf_s("%s", userInput, sizeof(userInput)); // sizeof does not allow scanf_s to read more chars
 
 		int command = getCommand(userInput);
 
@@ -61,13 +61,13 @@ int main() {
 			printf("Command is not available\n");
 			break;
 		}case COMMAND_HELP: {
-			printf("Command is not available\n");
+			help();
 			break;
 		}case COMMAND_EXIT: {
 			printf("Command is not available\n");
 			break;
 		}case COMMAND_UNKNOWN: {
-			printf("AAAAAAAAAAAAAAAAAAAA\n");
+			printf("Unknown command. Please try again\n");
 			break;
 		}
 		default:
@@ -85,7 +85,7 @@ int main() {
 }
 
 void help() {
-	printf("Available commands:\n");
+	printf("\nAvailable commands:\n");
 	printf("  append  -- Append text to the end of the text\n");
 	printf("  insert  -- Insert text at a specific position\n");
 	printf("  new     -- Start a new line\n\n");
@@ -96,7 +96,7 @@ void help() {
 	printf("  search  -- Search for a specific word in the text\n\n");
 
 	printf("  help    -- Display all available commands\n");
-	printf("  exit    -- Exit editor\n");
+	printf("  exit    -- Exit editor\n\n");
 }
 
 int getCommand(char* userInput)
