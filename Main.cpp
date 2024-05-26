@@ -9,10 +9,11 @@ enum Commands
 	COMMAND_NEWLINE,
 	COMMAND_SAVE,
 	COMMAND_LOAD,
-	COMMAND_SEARCH,
+	COMMAND_SEARCH, 
 	COMMAND_HELP,
 	COMMAND_EXIT,
-	COMMAND_UNKNOWN
+	COMMAND_UNKNOWN,
+	COMMAND_PRINT
 };
 
 void appendText(char* text, size_t initialSize, const char* newText);
@@ -105,9 +106,26 @@ int main() {
 			}
 			break;
 
-			// prints all text to the console
 		}case COMMAND_LOAD: {
-			printAllText(text, initialSize);
+			const char* filePath = "C:\\Users\\dariy\\Documents\\GitHub\\ProgrammingParadigms1\\myfile.txt";
+			FILE* file;
+			errno_t targetFile = fopen_s(&file, filePath, "r");
+			if (file != NULL) {
+				size_t lineIndex = 0; // line counter
+
+				while (lineIndex < initialSize && fgets(text[lineIndex], bufferSize, file) != NULL) {
+					size_t len = strlen(text[lineIndex]);
+
+					// puts that '\0' at the end of the text
+					if (len > 0 && text[lineIndex][len - 1] == '\n') {
+						text[lineIndex][len - 1] = '\0';
+					}
+					lineIndex++;
+				}
+
+				fclose(file);
+				printf("Text was successfully loaded!\n");
+			}
 			break;
 
 		}case COMMAND_SEARCH: {
@@ -122,6 +140,10 @@ int main() {
 		}case COMMAND_EXIT: {
 			printf("Exiting...\n");
 			goto exit;
+		}
+		case COMMAND_PRINT: {
+			printAllText(text, initialSize);
+			break;
 		}
 		default:
 			printf("Unknown command. Please try again: ");
@@ -146,6 +168,7 @@ void help() {
 
 	printf("  save     -- Save into the file\n");
 	printf("  load     -- Load an external file\n\n");
+	printf("  print    -- Print all text to the console\n\n");
 
 	printf("  search   -- Search for a specific word in the text\n\n");
 
@@ -178,6 +201,9 @@ int getCommand(char* userInput)
 	}
 	else if (strcmp(userInput, "exit") == 0) {
 		return COMMAND_EXIT;
+	}
+	else if (strcmp(userInput, "print") == 0) {
+		return COMMAND_PRINT;
 	}
 
 
