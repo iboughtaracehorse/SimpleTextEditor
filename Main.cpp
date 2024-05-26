@@ -6,7 +6,7 @@ enum Commands
 {
 	COMMAND_APPEND,
 	COMMAND_INSERT,
-	COMMAND_NEW,
+	COMMAND_NEWLINE,
 	COMMAND_SAVE,
 	COMMAND_LOAD,
 	COMMAND_SEARCH,
@@ -84,7 +84,7 @@ int main() {
 			}
 			break;
 
-		}case COMMAND_NEW: {
+		}case COMMAND_NEWLINE: {
 			size_t endline = findTheEndOfTheText(text, initialSize);
 			appendText(text[endline], bufferSize, "\n");
 			
@@ -102,8 +102,8 @@ int main() {
 			help();
 			break;
 		}case COMMAND_EXIT: {
-			printf("Command is not available\n");
-			break;
+			printf("Exiting...\n");
+			goto exit;
 		}
 		default:
 			printf("Unknown command. Please try again: ");
@@ -111,7 +111,7 @@ int main() {
 		}
 	}
 
-
+exit:
 	// Free the allocated memory
 	for (int i = 0; i < initialSize; i++)
 		free(text[i]);
@@ -122,17 +122,17 @@ int main() {
 
 void help() {
 	printf("\nAvailable commands:\n");
-	printf("  append  -- Append text to the end of the text\n");
-	printf("  insert  -- Insert text at a specific position\n");
-	printf("  new     -- Start a new line\n\n");
+	printf("  append   -- Append text to the end of the text\n");
+	printf("  insert   -- Insert text at a specific position\n");
+	printf("  newline  -- Start a new line\n\n");
 
-	printf("  save    -- Save into the file\n");
-	printf("  load    -- Load an external file\n\n");
+	printf("  save     -- Save into the file\n");
+	printf("  load     -- Load an external file\n\n");
 
-	printf("  search  -- Search for a specific word in the text\n\n");
+	printf("  search   -- Search for a specific word in the text\n\n");
 
-	printf("  help    -- Display all available commands\n");
-	printf("  exit    -- Exit editor\n\n");
+	printf("  help     -- Display all available commands\n");
+	printf("  exit     -- Exit editor\n\n");
 }
 
 int getCommand(char* userInput)
@@ -143,8 +143,8 @@ int getCommand(char* userInput)
 	else if (strcmp(userInput, "insert") == 0) {
 		return COMMAND_INSERT;
 	}
-	else if (strcmp(userInput, "new") == 0) {
-		return COMMAND_NEW;
+	else if (strcmp(userInput, "newline") == 0) {
+		return COMMAND_NEWLINE;
 	}
 	else if (strcmp(userInput, "save") == 0) {
 		return COMMAND_SAVE;
