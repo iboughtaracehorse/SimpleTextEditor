@@ -60,21 +60,20 @@ int main() {
 			break;
 
 		}case COMMAND_INSERT: {
-			char buffer[bufferSize];
+			char buffer[initialSize];
 			char newText[initialSize];
 
 			printf("Enter text to insert: ");
 			scanf_s("%s", newText, sizeof(newText));
 
 			printf("Enter placement in row_index format(e.g., 8_12): ");
-			scanf_s("%s", buffer, sizeof(buffer));
 			int row, index;
 
 			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
 			{
-				if (scanf_s(buffer, "%d_%d", &row, &index) == 2)
+				if (sscanf_s(buffer, "%d_%d", &row, &index) == 2)
 				{
-					if (row >= 0 && index < initialSize)
+					if (row >= 0 && index < initialSize && index >= 0 && index < bufferSize)
 					{
 						insertText(text[row], bufferSize, index, newText);
 					}
