@@ -62,30 +62,23 @@ int main() {
 		}case COMMAND_INSERT: {
 			char buffer[initialSize];
 			char newText[initialSize];
-			int row, index;
 
 			printf("Enter text to insert: ");
-			fgets(newText, sizeof(newText), stdin); // Read the text to insert
+			scanf_s(" %[^\n]", newText, sizeof(newText));
 
 			printf("Enter placement in row_index format(e.g., 8_12): ");
-			if (fgets(buffer, sizeof(buffer), stdin) != NULL) // Read the row_index format
-			{
-				if (sscanf_s(buffer, "%d_%d", &row, &index) == 2)
+			int row, index;
+			
+				if (scanf_s("%d_%d", &row, &index) == 3)
 				{
-					if (row >= 0 && row < initialSize && index >= 0 && index <= strlen(text[row])) // Check if row and index are within bounds
+					if (row >= 0 && index < initialSize && index >= 0 && index < bufferSize)
 					{
-						insertText(text[row], initialSize, index, newText); // Call insertText function
+						insertText(text[row], bufferSize, index, newText);
 					}
-					else
-					{
-						printf("Invalid row or index. Insertion cancelled.\n");
+					else {
+						printf("Insertion cancelled");
 					}
 				}
-				else
-				{
-					printf("Invalid input format. Insertion cancelled.\n");
-				}
-			}
 			break;
 
 			// appends a newline
@@ -244,12 +237,11 @@ void insertText(char* row, size_t size, int index, const char* newText)
 	size_t newTextLen = strlen(newText);
 	size_t rowLen = strlen(row);
 
-	if (index < 0 || index > size)
-	{
-		printf("Invalid text position!");
-		return; // no need to continue checks
+	if (rowLen + newTextLen < size) {
+		memmove(row + index + newTextLen, row + index, rowLen - index + 1); // move previous text
+		memcpy(row + index, newText, newTextLen);
 	}
-
-	memmove(row + index + newTextLen, row + index, rowLen - index + 1); // move previous text
-	memcpy(row + index, newText, newTextLen);
+	else {
+		printf("Not enough space to insert text.\n");
+	}
 }
