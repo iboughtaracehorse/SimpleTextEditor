@@ -20,6 +20,7 @@ void help();
 int getCommand(char* userInput);
 void printAllText(char** text, size_t numLines);
 size_t findTheEndOfTheText(char** text, size_t size);
+void insertText(char* row, size_t size, int index, const char* newText);
 
 int main() {
 
@@ -36,10 +37,12 @@ int main() {
 	strcpy_s(text[0], initialSize, "Hello");
 	strcpy_s(text[1], initialSize, "   ");
 	strcpy_s(text[2], initialSize, "World");
+	strcpy_s(text[3], initialSize, "   ");
 
-	while (1)
+
+	while (true)
 	{
-		printf("\nEnter a command or 'help' to see the list of available commands: ");
+		printf("Enter a command or 'help' to see the list of available commands: ");
 		scanf_s("%s", userInput, sizeof(userInput)); // sizeof does not allow scanf_s to read more chars
 
 		int command = getCommand(userInput);
@@ -58,16 +61,27 @@ int main() {
 
 		}case COMMAND_INSERT: {
 			char buffer[bufferSize];
+			char newText[initialSize];
+
+			printf("Enter text to insert: ");
+			scanf_s("%s", newText, sizeof(newText));
+
 			printf("Enter placement in row_index format(e.g., 8_12): ");
+			scanf_s("%s", buffer, sizeof(buffer));
+			int row, index;
+
 			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
 			{
-				int row, index;
-				char newText[bufferSize];
-				if (sscanf_s(buffer, "%d_%d", &row, &index, newText, sizeof(newText)) == 2)
+				if (scanf_s(buffer, "%d_%d", &row, &index) == 2)
 				{
-					printf("Insert is not implemented yet");
+					if (row >= 0 && index < initialSize)
+					{
+						insertText(text[row], bufferSize, index, newText);
+					}
+					else {
+						printf("Insertion cancelled");
+					}
 				}
-				
 			}
 			break;
 
@@ -176,4 +190,19 @@ size_t findTheEndOfTheText(char** text, size_t size)
 	}
 
 	return endline;
+}
+
+void insertText(char* row, size_t size, int index, const char* newText)
+{
+	size_t newTextLen = strlen(newText);
+	size_t rowLen = strlen(row);
+
+	if (index < 0 || index > size)
+	{
+		printf("Invalid text position!");
+		return; // no need to continue checks
+	}
+
+	memmove(row + index + newTextLen, row + index, rowLen - index + 1); // move previous text
+	memcpy(row + index, newText, newTextLen);
 }
