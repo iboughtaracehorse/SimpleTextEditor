@@ -35,10 +35,7 @@ int main() {
 		text[i][0] = '\0';
 	}
 
-	strcpy_s(text[0], initialSize, "Hello");
-	strcpy_s(text[1], initialSize, "   ");
-	strcpy_s(text[2], initialSize, "World");
-	strcpy_s(text[3], initialSize, "   ");
+	strcpy_s(text[0], initialSize, "Hello World");
 
 
 	while (true)
@@ -54,7 +51,7 @@ int main() {
 		case COMMAND_APPEND: {
 			printf("Enter text to append: ");
 			char newText[bufferSize];
-			if (scanf_s("%s", newText, sizeof(newText)) != NULL)
+			if (scanf_s(" %[^\n]", newText, sizeof(newText)) != NULL) 
 			{
 				size_t endline = findTheEndOfTheText(text, initialSize);
 				appendText(text[endline], bufferSize, newText);
@@ -65,21 +62,28 @@ int main() {
 		}case COMMAND_INSERT: {
 			char buffer[initialSize];
 			char newText[initialSize];
-			printf("Enter text to insert: ");
-			scanf_s("%s", newText, sizeof(newText));
-			printf("Enter placement in row_index format(e.g., 8_12): ");
 			int row, index;
-			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
+
+			printf("Enter text to insert: ");
+			fgets(newText, sizeof(newText), stdin); // Read the text to insert
+
+			printf("Enter placement in row_index format(e.g., 8_12): ");
+			if (fgets(buffer, sizeof(buffer), stdin) != NULL) // Read the row_index format
 			{
 				if (sscanf_s(buffer, "%d_%d", &row, &index) == 2)
 				{
-					if (row >= 0 && index < initialSize && index >= 0 && index < bufferSize)
+					if (row >= 0 && row < initialSize && index >= 0 && index <= strlen(text[row])) // Check if row and index are within bounds
 					{
-						insertText(text[row], bufferSize, index, newText);
+						insertText(text[row], initialSize, index, newText); // Call insertText function
 					}
-					else {
-						printf("Insertion cancelled");
+					else
+					{
+						printf("Invalid row or index. Insertion cancelled.\n");
 					}
+				}
+				else
+				{
+					printf("Invalid input format. Insertion cancelled.\n");
 				}
 			}
 			break;
