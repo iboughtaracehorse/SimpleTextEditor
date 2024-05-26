@@ -49,6 +49,7 @@ int main() {
 
 		switch (command)
 		{
+			// to the end of the text
 		case COMMAND_APPEND: {
 			printf("Enter text to append: ");
 			char newText[bufferSize];
@@ -59,16 +60,14 @@ int main() {
 			}
 			break;
 
+			// to a chosen index
 		}case COMMAND_INSERT: {
 			char buffer[initialSize];
 			char newText[initialSize];
-
 			printf("Enter text to insert: ");
 			scanf_s("%s", newText, sizeof(newText));
-
 			printf("Enter placement in row_index format(e.g., 8_12): ");
 			int row, index;
-
 			if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
 			{
 				if (sscanf_s(buffer, "%d_%d", &row, &index) == 2)
@@ -84,23 +83,42 @@ int main() {
 			}
 			break;
 
+			// appends a newline
 		}case COMMAND_NEWLINE: {
 			size_t endline = findTheEndOfTheText(text, initialSize);
 			appendText(text[endline], bufferSize, "\n");
-			
 			break;
+
 		}case COMMAND_SAVE: {
-			printf("Command is not available\n");
+			const char* filePath = "C:\\Users\\dariy\\Documents\\GitHub\\ProgrammingParadigms1";
+			
+			FILE* file;
+			errno_t targetFile = fopen_s(&file, "myfile.txt", "w+");
+			if (file != NULL)
+			{
+				for (size_t i = 0; i < initialSize; ++i) {
+					if (text[i][0] != '\0') {
+						fprintf(file, "%s\n", text[i]);
+					}
+				}
+				printf("Your text was successfully saved!");
+			}
 			break;
+
+			// prints all text to the console
 		}case COMMAND_LOAD: {
 			printAllText(text, initialSize);
 			break;
+
 		}case COMMAND_SEARCH: {
 			printf("Command is not available\n");
 			break;
+
+			// prints help info to the console
 		}case COMMAND_HELP: {
 			help();
 			break;
+
 		}case COMMAND_EXIT: {
 			printf("Exiting...\n");
 			goto exit;
