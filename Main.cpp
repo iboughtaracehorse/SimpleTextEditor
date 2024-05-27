@@ -9,7 +9,7 @@ enum Commands
 	COMMAND_NEWLINE,
 	COMMAND_SAVE,
 	COMMAND_LOAD,
-	COMMAND_SEARCH, 
+	COMMAND_SEARCH,
 	COMMAND_HELP,
 	COMMAND_EXIT,
 	COMMAND_UNKNOWN,
@@ -22,6 +22,8 @@ int getCommand(char* userInput);
 void printAllText(char** text, size_t numLines);
 size_t findTheEndOfTheText(char** text, size_t size);
 void insertText(char* row, size_t size, int index, const char* newText);
+void searchSubstring(char** text, size_t numLines, const char* substring);
+
 
 int main() {
 
@@ -35,7 +37,7 @@ int main() {
 		text[i][0] = '\0';
 	}
 
-	strcpy_s(text[0], initialSize, "Hello World");
+	strcpy_s(text[0], initialSize, "Hello World"); // default text
 
 
 	while (true)
@@ -51,7 +53,7 @@ int main() {
 		case COMMAND_APPEND: {
 			printf("Enter text to append: ");
 			char newText[bufferSize];
-			if (scanf_s(" %[^\n]", newText, sizeof(newText)) != NULL) 
+			if (scanf_s(" %[^\n]", newText, sizeof(newText)) != NULL)
 			{
 				size_t endline = findTheEndOfTheText(text, initialSize);
 				appendText(text[endline], bufferSize, newText);
@@ -60,26 +62,8 @@ int main() {
 
 			// to a chosen index
 		}case COMMAND_INSERT: {
-			char buffer[initialSize];
-			char newText[initialSize];
+			/*BLANK FOR NOW*/
 
-			printf("Enter text to insert: ");
-			scanf_s(" %[^\n]", newText, sizeof(newText));
-
-			printf("Enter placement in row_index format(e.g., 8_12): ");
-			int row, index;
-			
-				if (scanf_s("%d_%d", &row, &index) == 3)
-				{
-					if (row >= 0 && index < initialSize && index >= 0 && index < bufferSize)
-					{
-						insertText(text[row], bufferSize, index, newText);
-					}
-					else {
-						printf("Insertion cancelled");
-					}
-				}
-			break;
 
 			// appends a newline
 		}case COMMAND_NEWLINE: {
@@ -89,7 +73,7 @@ int main() {
 
 		}case COMMAND_SAVE: {
 			const char* filePath = "C:\\Users\\dariy\\Documents\\GitHub\\ProgrammingParadigms1";
-			
+
 			FILE* file;
 			errno_t targetFile = fopen_s(&file, "myfile.txt", "w+");
 			if (file != NULL)
@@ -124,9 +108,20 @@ int main() {
 				printf("Text was successfully loaded!\n");
 			}
 			break;
-
 		}case COMMAND_SEARCH: {
-			printf("Command is not available\n");
+			printf("Enter the substring to search: ");
+			char substring[bufferSize];
+
+			int c;
+			while ((c = getchar()) != '\n' && c != EOF); // clears the input buffer
+
+			if (fgets(substring, sizeof(substring), stdin) != NULL) {
+				substring[strcspn(substring, "\n")] = '\0'; // trim
+				searchSubstring(text, initialSize, substring);
+			}
+			else {
+				printf("Invalid substring! Try again.\n");
+			}
 			break;
 
 			// prints help info to the console
@@ -232,16 +227,34 @@ size_t findTheEndOfTheText(char** text, size_t size)
 	return endline;
 }
 
-void insertText(char* row, size_t size, int index, const char* newText)
-{
-	size_t newTextLen = strlen(newText);
-	size_t rowLen = strlen(row);
+void insertText(char* row, size_t rowSize, int index, const char* newText) {
 
-	if (rowLen + newTextLen < size) {
-		memmove(row + index + newTextLen, row + index, rowLen - index + 1); // move previous text
-		memcpy(row + index, newText, newTextLen);
+}
+
+void searchSubstring(char** text, size_t numLines, const char* substring) {
+	bool found = false;
+	size_t substringLen = strlen(substring);
+	printf("Searching for substring: \"%s\"...\n", substring);
+
+	for (size_t i = 0; i < numLines; i++) {
+		char* row = text[i]; // current row that is being checked
+
+		if (row[0] == '\0')  // checks if row is not empty
+		{
+			break;
+		}
+		size_t rowLen = strlen(row);
+
+		for (size_t j = 0; j <= rowLen - substringLen; j++) {
+			if (strncmp(&row[j], substring, substringLen) == 0) {
+				printf("Found substring at row %zu, index %zu\n", i, j);
+				found = true;
+			}
+		}
 	}
-	else {
-		printf("Not enough space to insert text.\n");
+
+	if (found == false)
+	{
+		printf("No such substring in your text!\n");
 	}
 }
