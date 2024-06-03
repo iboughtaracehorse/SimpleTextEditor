@@ -4,7 +4,7 @@
 
 enum Commands
 {
-    COMMAND_APPEND,
+    COMMAND_APPEND = 0,
     COMMAND_INSERT,
     COMMAND_NEWLINE,
     COMMAND_SAVE,
@@ -12,9 +12,12 @@ enum Commands
     COMMAND_SEARCH,
     COMMAND_HELP,
     COMMAND_EXIT,
-    COMMAND_UNKNOWN,
-    COMMAND_PRINT
+    COMMAND_PRINT,
+    COMMAND_UNKNOWN
+
 };
+
+const char* commandsToStrings[] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print" };
 
 void appendText(char* text, size_t bufferSize, const char* newText);
 void input(char** text, size_t size);
@@ -22,7 +25,6 @@ void help();
 int getCommand(const char* userInput);
 void printAllText(char** text, size_t numLines);
 size_t findTheEndOfTheText(char** text, size_t size);
-void insertText(char** text, char* row, size_t size, int index, const char* newText);
 void searchSubstring(char** text, size_t numLines, const char* substring);
 void saveToFile(char** text, size_t numLines);
 void loadFromFile(char** text, size_t initialSize);
@@ -41,8 +43,6 @@ int main() {
 
     strcpy_s(text[0], initialSize, "Hello World"); // default text
 
-    /* C:\Users\dariy\Documents\GitHub\ProgrammingParadigms1\file.txt */
-
     while (true)
     {
         printf("Enter a command or 'help' to see the list of available commands: ");
@@ -57,29 +57,7 @@ int main() {
             break;
         }
         case COMMAND_INSERT: {
-            char buffer[initialSize];
-            char newText[initialSize];
-
-            printf("Enter text to insert: ");
-            scanf_s("%s", newText, sizeof(newText));
-
-            printf("Enter placement in row_index format(e.g., 8_12): ");
-            int row, index;
-
-            if (scanf_s("%s", buffer, sizeof(buffer)) != NULL)
-            {
-                if (sscanf_s(buffer, "%d_%d", &row, &index) == 2)
-                {
-
-                    if (row >= 0 && index < initialSize && index >= 0 && index < initialSize)
-                    {
-                        insertText(text, text[row], initialSize, index, newText);
-                    }
-                    else {
-                        printf("Insertion cancelled");
-                    }
-                }
-            }
+            printf("NOT IMPLEMENTED");
             break;
         }
         case COMMAND_NEWLINE: {
@@ -104,14 +82,15 @@ int main() {
             help();
             break;
         }
-        case COMMAND_EXIT: {
-            printf("Exiting...\n");
-            goto exit;
-        }
         case COMMAND_PRINT: {
             printAllText(text, initialSize);
             break;
         }
+        case COMMAND_EXIT: {
+            printf("Exiting...\n");
+            goto exit;
+        }
+        
         default:
             printf("Unknown command. Please try again.\n");
             break;
@@ -120,9 +99,13 @@ int main() {
 
 exit:
     // Free the allocated memory
-    for (size_t i = 0; i < initialSize; i++)
+    for (size_t i = 0; i < initialSize; i++) {
         free(text[i]);
+        text[i] = NULL;
+    }
+       
     free(text);
+    text = NULL;
 
     return 0;
 }
@@ -145,36 +128,13 @@ void help() {
 
 int getCommand(const char* userInput)
 {
-    if (strcmp(userInput, "append") == 0) {
-        return COMMAND_APPEND;
+    for (int i = 0; i < sizeof(commandsToStrings) / sizeof(commandsToStrings[0]); i++) {
+        if (strcmp(userInput, commandsToStrings[i]) == 0) {
+            return (enum Commands)i;
+        }
     }
-    else if (strcmp(userInput, "insert") == 0) {
-        return COMMAND_INSERT;
-    }
-    else if (strcmp(userInput, "newline") == 0) {
-        return COMMAND_NEWLINE;
-    }
-    else if (strcmp(userInput, "save") == 0) {
-        return COMMAND_SAVE;
-    }
-    else if (strcmp(userInput, "load") == 0) {
-        return COMMAND_LOAD;
-    }
-    else if (strcmp(userInput, "search") == 0) {
-        return COMMAND_SEARCH;
-    }
-    else if (strcmp(userInput, "help") == 0) {
-        return COMMAND_HELP;
-    }
-    else if (strcmp(userInput, "exit") == 0) {
-        return COMMAND_EXIT;
-    }
-    else if (strcmp(userInput, "print") == 0) {
-        return COMMAND_PRINT;
-    }
-    else {
-        return COMMAND_UNKNOWN;
-    }
+
+    return COMMAND_UNKNOWN;
 }
 
 void appendText(char* text, size_t initialSize, const char* newText) {
@@ -211,34 +171,6 @@ size_t findTheEndOfTheText(char** text, size_t size)
     return endline;
 }
 
-
-void insertText(char** text, char* row, size_t size, int index, const char* newText)
-{
-    size_t newTextLen = strlen(newText);
-    size_t rowLen = strlen(row);
-    char* initialRow = 0;
-    char* initialIndex = 0;
-    bool userRow = false;
-
-    if (index < 0 || index > rowLen)
-    {
-        printf("Invalid text position!");
-        return; // no need to continue checks
-    }
-
-    for (char* i = *text; i; i++)
-    {
-        if (i == row)
-        {
-            userRow = true;
-        }
-    }
-
-    printf("FUNCTION               ");
-
-    printf("%B", userRow);
-
-}
 
 void searchSubstring(char** text, size_t numLines, const char* substring) {
     int found = false;
