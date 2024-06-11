@@ -14,6 +14,9 @@ public:
             text[i] = new char[initialSize]();
         }
         strcpy_s(text[0], initialSize, "Hello World");
+
+        undoArray = new char** [maxStates];
+        redoArray = new char** [maxStates];
     }
 
     ~TextEditor() {
@@ -21,6 +24,25 @@ public:
             delete[] text[i];
         }
         delete[] text;
+
+        while (undo >= 0) {
+            for (size_t i = 0; i < initialSize; ++i) {
+                delete[] undoArray[undo][i];
+            }
+            delete[] undoArray[undo];
+            --undo;
+        }
+        delete[] undoArray;
+
+        while (redo >= 0) {
+            for (size_t i = 0; i < initialSize; ++i) {
+                delete[] redoArray[redo][i];
+            }
+            delete[] redoArray[redo];
+            --redo;
+        }
+        delete[] redoArray;
+    
     }
 
 
@@ -68,6 +90,7 @@ public:
         }
     }
 
+
 private:
 
     enum Commands {
@@ -85,7 +108,13 @@ private:
 
     char** text;
     const size_t initialSize;
+    char*** undoArray;
+    char*** redoArray;
+    int undo;
+    int redo;
+    const int maxStates = 3;
     const char* commandsToStrings[9] = {"append", "insert", "newline", "save", "load", "search", "help", "exit", "print"};
+
 
     int getCommand(const char* userInput) {
         for (size_t i = 0; i < sizeof(commandsToStrings) / sizeof(commandsToStrings[0]); ++i) {
@@ -103,6 +132,7 @@ private:
         std::cin.ignore();
         std::cin.getline(newText, initialSize);
         strcat_s(text[findEndOfText()], initialSize, newText);
+        saveState();
     }
 
     void newLine() {
@@ -257,6 +287,32 @@ private:
         strcpy_s(text[row], initialSize, temp);
 
         std::cout << "Text inserted successfully.\n";
+        saveState();
+    }
+
+    char** copyText(){
+        char** copy = new char* [initialSize];
+        for (size_t i = 0; i < initialSize; ++i) {
+            copy[i] = new char[initialSize];
+            strcpy_s(copy[i], initialSize, text[i]);
+        }
+        return copy;
+    }
+
+    void saveState() {
+        if (undo < maxStates - 1) {
+            ++undo;
+            undoArray[undo] = copyText();
+        }
+        if (redo >= 0) {
+            while (redo >= 0) {
+                for (size_t i = 0; i < initialSize; ++i) {
+                    delete[] redoArray[redo][i];
+                }
+                delete[] redoArray[redo];
+                --redo;
+            }
+        }
     }
 
 };
