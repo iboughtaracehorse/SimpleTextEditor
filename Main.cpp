@@ -2,12 +2,13 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <cstring>
 
 class TextEditor {
 
 public:
     TextEditor(size_t initialSize)
-        : initialSize(initialSize) {
+        : initialSize(initialSize), undo(-1), redo(-1) {
         text = new char* [initialSize];
 
         for (size_t i = 0; i < initialSize; ++i) {
@@ -42,7 +43,6 @@ public:
             --redo;
         }
         delete[] redoArray;
-    
     }
 
 
@@ -80,6 +80,9 @@ public:
             case COMMAND_PRINT:
                 printAllText();
                 break;
+            case COMMAND_DELETE:
+                deleteText();
+                break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
                 return;
@@ -89,7 +92,6 @@ public:
             }
         }
     }
-
 
 private:
 
@@ -103,6 +105,7 @@ private:
         COMMAND_HELP,
         COMMAND_EXIT,
         COMMAND_PRINT,
+        COMMAND_DELETE,
         COMMAND_UNKNOWN
     };
 
@@ -113,7 +116,7 @@ private:
     int undo;
     int redo;
     const int maxStates = 3;
-    const char* commandsToStrings[9] = {"append", "insert", "newline", "save", "load", "search", "help", "exit", "print"};
+    const char* commandsToStrings[10] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete" };
 
 
     int getCommand(const char* userInput) {
@@ -126,13 +129,13 @@ private:
     }
 
     void append() {
-        const size_t initialSize = 256;
-        char newText[initialSize];
+        const size_t bufferSize = 256;
+        char newText[bufferSize];
         std::cout << "Enter text to append: ";
         std::cin.ignore();
-        std::cin.getline(newText, initialSize);
-        strcat_s(text[findEndOfText()], initialSize, newText);
-        saveState();
+        std::cin.getline(newText, bufferSize);
+
+        strcat_s(text[findEndOfText()], bufferSize, newText);
     }
 
     void newLine() {
@@ -148,7 +151,7 @@ private:
         std::cin.getline(filePath, bufferSize);
 
         FILE* file;
-        errno_t err = fopen_s(&file, filePath, "a"); 
+        errno_t err = fopen_s(&file, filePath, "w");
         if (err == 0 && file != nullptr) {
             for (size_t i = 0; i < initialSize; ++i) {
                 if (text[i][0] != '\0') {
@@ -163,21 +166,20 @@ private:
         }
     }
 
-
     void load() {
-        const size_t initialSize = 256;
-        char filePath[initialSize];
+        const size_t bufferSize = 256;
+        char filePath[bufferSize];
         std::cout << "Input full path to file: ";
         std::cin.ignore();
-        std::cin.getline(filePath, initialSize);
+        std::cin.getline(filePath, bufferSize);
 
         FILE* file;
         errno_t err = fopen_s(&file, filePath, "r");
         if (file != nullptr) {
-            char line[initialSize];
+            char line[bufferSize];
             size_t lineIndex = 0;
 
-            while (lineIndex < initialSize && fgets(line, initialSize, file) != nullptr) {
+            while (lineIndex < initialSize && fgets(line, bufferSize, file) != nullptr) {
                 size_t len = strlen(line);
                 if (len > 0 && line[len - 1] == '\n') {
                     line[len - 1] = '\0';
@@ -193,14 +195,13 @@ private:
         }
     }
 
-
     void search() {
-        const size_t initialSize = 256;
+        const size_t bufferSize = 256;
 
-        char substring[initialSize];
+        char substring[bufferSize];
         std::cout << "Enter the substring to search: ";
         std::cin.ignore();
-        std::cin.getline(substring, initialSize);
+        std::cin.getline(substring, bufferSize);
 
         bool found = false;
         for (size_t i = 0; i < initialSize; ++i) {
@@ -223,6 +224,7 @@ private:
         std::cout << "  load     -- Load an external file\n";
         std::cout << "  print    -- Print all text to the console\n";
         std::cout << "  search   -- Search for a specific word in the text\n";
+        std::cout << "  delete   -- Delete a specified number of characters from a specific position\n";
         std::cout << "  help     -- Display all available commands\n";
         std::cout << "  exit     -- Exit editor\n\n";
     }
@@ -244,13 +246,13 @@ private:
     }
 
     void insert() {
-        const size_t initialSize = 256;
-        char newText[initialSize];
+        const size_t bufferSize = 256;
+        char newText[bufferSize];
         int row, index;
 
         std::cout << "Enter text to insert: ";
         std::cin.ignore();
-        std::cin.getline(newText, initialSize);
+        std::cin.getline(newText, bufferSize);
 
         std::cout << "Enter row number: ";
         std::cin >> row;
@@ -270,7 +272,7 @@ private:
             return;
         }
 
-        char temp[initialSize];
+        char temp[bufferSize];
         for (size_t i = 0; i < index && i < textLength; ++i) {
             temp[i] = text[row][i];
         }
@@ -284,37 +286,43 @@ private:
         }
 
         temp[textLength + newTextLength] = '\0';
-        strcpy_s(text[row], initialSize, temp);
+        strcpy_s(text[row], bufferSize, temp);
 
         std::cout << "Text inserted successfully.\n";
-        saveState();
     }
 
-    char** copyText(){
-        char** copy = new char* [initialSize];
-        for (size_t i = 0; i < initialSize; ++i) {
-            copy[i] = new char[initialSize];
-            strcpy_s(copy[i], initialSize, text[i]);
-        }
-        return copy;
-    }
+    void deleteText() {
+        const size_t bufferSize = 256;
+        int row, index, length;
 
-    void saveState() {
-        if (undo < maxStates - 1) {
-            ++undo;
-            undoArray[undo] = copyText();
-        }
-        if (redo >= 0) {
-            while (redo >= 0) {
-                for (size_t i = 0; i < initialSize; ++i) {
-                    delete[] redoArray[redo][i];
-                }
-                delete[] redoArray[redo];
-                --redo;
-            }
-        }
-    }
+        std::cout << "Enter row number: ";
+        std::cin >> row;
 
+        std::cout << "Enter start position: ";
+        std::cin >> index;
+
+        std::cout << "Enter number of characters to delete: ";
+        std::cin >> length;
+
+        if (row < 0 || row >= initialSize || index < 0 || index >= initialSize || length < 0) {
+            std::cout << "Deletion cancelled: Invalid row, index, or length\n";
+            return;
+        }
+
+        size_t textLength = strlen(text[row]);
+        if (index + length > textLength) {
+            std::cout << "Deletion cancelled: An amount of symbols to delete exceeds text length\n";
+            return;
+        }
+
+        for (size_t i = index; i < textLength - length; ++i) {
+            text[row][i] = text[row][i + length];
+        }
+
+        text[row][textLength - length] = '\0';
+
+        std::cout << "Text deleted successfully.\n";
+    }
 };
 
 int main() {
