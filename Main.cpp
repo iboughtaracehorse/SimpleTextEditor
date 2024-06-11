@@ -1,19 +1,31 @@
 #include <iostream>
-#include <vector>
-#include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 class TextEditor {
+
 public:
-    TextEditor(size_t initialSize, size_t bufferSize)
-        : initialSize(initialSize), bufferSize(bufferSize) {
-        text.resize(initialSize, std::string());
-        text[0] = "Hello World"; // default text
+    TextEditor(size_t initialSize)
+        : initialSize(initialSize) {
+        text = new char* [initialSize];
+
+        for (size_t i = 0; i < initialSize; ++i) {
+            text[i] = new char[initialSize]();
+        }
+        strcpy_s(text[0], initialSize, "Hello World");
     }
 
-    void run() {
-        std::string userInput;
+    ~TextEditor() {
+        for (size_t i = 0; i < initialSize; ++i) {
+            delete[] text[i];
+        }
+        delete[] text;
+    }
+
+
+    void main() {
+        char userInput[20];
 
         while (true) {
             std::cout << "Enter a command or 'help' to see the list of available commands: ";
@@ -44,7 +56,7 @@ public:
                 help();
                 break;
             case COMMAND_PRINT:
-                print();
+                printAllText();
                 break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
@@ -57,8 +69,9 @@ public:
     }
 
 private:
+
     enum Commands {
-        COMMAND_APPEND = 0,
+        COMMAND_APPEND,
         COMMAND_INSERT,
         COMMAND_NEWLINE,
         COMMAND_SAVE,
@@ -70,112 +83,99 @@ private:
         COMMAND_UNKNOWN
     };
 
-    std::vector<std::string> text;
+    char** text;
     const size_t initialSize;
-    const size_t bufferSize;
-    const std::vector<std::string> commandsToStrings = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print" };
+    const char* commandsToStrings[9] = {"append", "insert", "newline", "save", "load", "search", "help", "exit", "print"};
 
-    int getCommand(const std::string& userInput) {
-        for (size_t i = 0; i < commandsToStrings.size(); i++) {
-            if (userInput == commandsToStrings[i]) {
-                return static_cast<int>(i);
+    int getCommand(const char* userInput) {
+        for (size_t i = 0; i < sizeof(commandsToStrings) / sizeof(commandsToStrings[0]); ++i) {
+            if (strcmp(userInput, commandsToStrings[i]) == 0) {
+                return i;
             }
         }
         return COMMAND_UNKNOWN;
     }
 
     void append() {
-        std::string newText;
+        const size_t initialSize = 256;
+        char newText[initialSize];
         std::cout << "Enter text to append: ";
         std::cin.ignore();
-        std::getline(std::cin, newText);
-        text[findEndOfText()] += newText;
-    }
-
-    void insert() {
-        std::string newText, buffer;
-        int row, index;
-
-        std::cout << "Enter text to insert: ";
-        std::cin.ignore();
-        std::getline(std::cin, newText);
-        std::cout << "Enter placement in row_index format (e.g., 8_12): ";
-        std::getline(std::cin, buffer);
-
-        std::stringstream ss(buffer);
-        char sep;
-        if (ss >> row >> sep >> index && sep == '_') {
-            if (row >= 0 && static_cast<size_t>(row) < initialSize && index >= 0 && static_cast<size_t>(index) < bufferSize) {
-                insertText(row, index, newText);
-            }
-            else {
-                std::cout << "Insertion cancelled: Invalid row or index\n";
-            }
-        }
-        else {
-            std::cout << "Insertion cancelled: Invalid format\n";
-        }
+        std::cin.getline(newText, initialSize);
+        strcat_s(text[findEndOfText()], initialSize, newText);
     }
 
     void newLine() {
-        text[findEndOfText()] += "\n";
+        strcat_s(text[findEndOfText()], initialSize, "\n");
     }
 
     void save() {
-        std::string filePath;
+        const size_t bufferSize = 256;
+        char filePath[bufferSize];
+
         std::cout << "Input full path to file: ";
         std::cin.ignore();
-        std::getline(std::cin, filePath);
+        std::cin.getline(filePath, bufferSize);
 
-        std::ofstream file(filePath, std::ofstream::out | std::ofstream::trunc);
-        if (file.is_open()) {
-            for (const auto& line : text) {
-                if (!line.empty()) {
-                    file << line << "\n";
+        FILE* file;
+        errno_t err = fopen_s(&file, filePath, "a"); 
+        if (err == 0 && file != nullptr) {
+            for (size_t i = 0; i < initialSize; ++i) {
+                if (text[i][0] != '\0') {
+                    fprintf(file, "%s\n", text[i]);
                 }
             }
-            file.close();
+            fclose(file);
             std::cout << "Your text was successfully saved!\n";
         }
         else {
-            std::cout << "Failed to open the file for writing.\n";
+            std::cout << "Failed to create or open the file for writing. Error code: " << err << "\n";
         }
     }
 
+
     void load() {
-        std::string filePath;
+        const size_t initialSize = 256;
+        char filePath[initialSize];
         std::cout << "Input full path to file: ";
         std::cin.ignore();
-        std::getline(std::cin, filePath);
+        std::cin.getline(filePath, initialSize);
 
-        std::ifstream file(filePath);
-        if (file.is_open()) {
-            std::string line;
+        FILE* file;
+        errno_t err = fopen_s(&file, filePath, "r");
+        if (file != nullptr) {
+            char line[initialSize];
             size_t lineIndex = 0;
 
-            while (lineIndex < initialSize && std::getline(file, line)) {
-                text[lineIndex] = line;
+            while (lineIndex < initialSize && fgets(line, initialSize, file) != nullptr) {
+                size_t len = strlen(line);
+                if (len > 0 && line[len - 1] == '\n') {
+                    line[len - 1] = '\0';
+                }
+                strncpy_s(text[lineIndex], initialSize, line, _TRUNCATE);
                 lineIndex++;
             }
-            file.close();
+            fclose(file);
             std::cout << "Text was successfully loaded!\n";
         }
         else {
-            std::cout << "Failed to open the file for reading.\n";
+            std::cout << "Failed to open the file.\n";
         }
     }
 
+
     void search() {
-        std::string substring;
+        const size_t initialSize = 256;
+
+        char substring[initialSize];
         std::cout << "Enter the substring to search: ";
         std::cin.ignore();
-        std::getline(std::cin, substring);
+        std::cin.getline(substring, initialSize);
 
         bool found = false;
-        for (size_t i = 0; i < text.size(); i++) {
-            size_t pos = text[i].find(substring);
-            if (pos != std::string::npos) {
-                std::cout << "Found substring at row " << i << ", index " << pos << "\n";
+        for (size_t i = 0; i < initialSize; ++i) {
+            if (strstr(text[i], substring) != nullptr) {
+                std::cout << "Found substring at row " << i << "\n";
                 found = true;
             }
         }
@@ -197,38 +197,72 @@ private:
         std::cout << "  exit     -- Exit editor\n\n";
     }
 
-    void print() {
-        for (const auto& line : text) {
-            if (!line.empty()) {
-                std::cout << line << "\n";
+    void printAllText() {
+        for (size_t i = 0; i < initialSize; ++i) {
+            if (text[i][0] != '\0') {
+                std::cout << text[i] << "\n";
             }
         }
     }
 
     size_t findEndOfText() {
         size_t endline = initialSize - 1;
-        while (endline > 0 && text[endline].empty()) {
+        while (endline > 0 && text[endline][0] == '\0') {
             endline--;
         }
         return endline;
     }
 
-    void insertText(int row, int index, const std::string& newText) {
-        std::string& line = text[row];
-        if (index <= static_cast<int>(line.size())) {
-            line.insert(index, newText);
-            std::cout << "Text inserted successfully.\n";
+    void insert() {
+        const size_t initialSize = 256;
+        char newText[initialSize];
+        int row, index;
+
+        std::cout << "Enter text to insert: ";
+        std::cin.ignore();
+        std::cin.getline(newText, initialSize);
+
+        std::cout << "Enter row number: ";
+        std::cin >> row;
+
+        std::cout << "Enter position: ";
+        std::cin >> index;
+
+        if (row < 0 || row >= initialSize || index < 0 || index >= initialSize) {
+            std::cout << "Insertion cancelled: Invalid row or index\n";
+            return;
         }
-        else {
-            std::cout << "Invalid character position. Please enter a number between 0 and " << line.size() << ".\n";
+
+        size_t newTextLength = strlen(newText);
+        size_t textLength = strlen(text[row]);
+        if (textLength + newTextLength >= initialSize) {
+            std::cout << "Insertion cancelled. No space.\n";
+            return;
         }
+
+        char temp[initialSize];
+        for (size_t i = 0; i < index && i < textLength; ++i) {
+            temp[i] = text[row][i];
+        }
+
+        for (size_t i = 0; i < newTextLength; ++i) {
+            temp[index + i] = newText[i];
+        }
+
+        for (size_t i = index; i < textLength; ++i) {
+            temp[newTextLength + i] = text[row][i];
+        }
+
+        temp[textLength + newTextLength] = '\0';
+        strcpy_s(text[row], initialSize, temp);
+
+        std::cout << "Text inserted successfully.\n";
     }
+
 };
 
 int main() {
-    const size_t initialSize = 256;
-    const size_t bufferSize = 50;
-    TextEditor editor(initialSize, bufferSize);
-    editor.run();
+    TextEditor editor(256);
+    editor.main();
     return 0;
 }
