@@ -88,7 +88,14 @@ public:
                 printAllText();
                 break;
             case COMMAND_DELETE:
-                deleteText();
+                int row, position, numChars;
+                std::cout << "Enter row number: ";
+                std::cin >> row;
+                std::cout << "Enter position: ";
+                std::cin >> position;
+                std::cout << "Enter number of characters to delete: ";
+                std::cin >> numChars;
+                deleteText(row, position, numChars);
                 break;
             case COMMAND_UNDO:
                 undoCommand();
@@ -97,10 +104,20 @@ public:
                 redoCommand();
                 break;
             case COMMAND_COPY:
-                copy();
+                int rowCopy, positionCopy, numCharsCopy;
+                std::cout << "Enter a row: \n";
+                std::cin >> rowCopy;
+                std::cout << "Enter a position: \n";
+                std::cin >> positionCopy;
+                std::cout << "Enter an amount of chars to copy (no more than 256): \n";
+                std::cin >> numCharsCopy;
+                copy(rowCopy, positionCopy, numCharsCopy);
                 break;
             case COMMAND_PASTE:
                 paste(copied);
+                break;
+            case COMMAND_CUT:
+                cut();
                 break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
@@ -129,6 +146,7 @@ private:
         COMMAND_REDO,
         COMMAND_COPY,
         COMMAND_PASTE,
+        COMMAND_CUT,
         COMMAND_UNKNOWN
     };
 
@@ -140,8 +158,8 @@ private:
     int redo = 0;
     const int maxStates = 3;
     char copied[256];
-    const char* commandsToStrings[14] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
-                                          "print", "delete", "undo", "redo", "copy", "paste"};
+    const char* commandsToStrings[15] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
+                                          "print", "delete", "undo", "redo", "copy", "paste", "cut"};
 
 
     int getCommand(const char* userInput) {
@@ -358,36 +376,25 @@ private:
         
     }
 
-    void deleteText() {
-
+    void deleteText(int row, int position, int numChars) {
         const size_t bufferSize = 256;
-        int row, index, length;
 
-        std::cout << "Enter row number: ";
-        std::cin >> row;
-
-        std::cout << "Enter position: ";
-        std::cin >> index;
-
-        std::cout << "Enter number of characters to delete: ";
-        std::cin >> length;
-
-        if (row < 0 || row >= initialSize || index < 0 || index >= initialSize || length < 0) {
+        if (row < 0 || row >= initialSize || position < 0 || position >= initialSize || numChars < 0) {
             std::cout << "Deletion cancelled: Invalid row, index, or length\n";
             return;
         }
 
         size_t textLength = strlen(text[row]);
-        if (index + length > textLength) {
+        if (position + numChars > textLength) {
             std::cout << "Deletion cancelled: An amount of symbols to delete exceeds text length\n";
             return;
         }
 
-        for (size_t i = index; i < textLength - length; ++i) {
-            text[row][i] = text[row][i + length];
+        for (size_t i = position; i < textLength - numChars; ++i) {
+            text[row][i] = text[row][i + numChars];
         }
 
-        text[row][textLength - length] = '\0';
+        text[row][textLength - numChars] = '\0';
 
         std::cout << "Text deleted successfully.\n";
     }
@@ -514,16 +521,9 @@ private:
         std::cout << "Redo was successful.\n";
     }
 
-    void copy() {
+    void copy(int row, int position, int numChars) {
         const size_t bufferSize = 256;
-        int row, position, numChars;
 
-        std::cout << "Enter a row: \n";
-        std::cin >> row;
-        std::cout << "Enter a position: \n";
-        std::cin >> position;
-        std::cout << "Enter an amount of chars to copy (no more than 256): \n";
-        std::cin >> numChars;
 
         if (row < 0 || row >= initialSize) {
             std::cout << "Invalid row!!\n";
@@ -585,6 +585,20 @@ private:
 
     bool isEmpty(const char* array) {
         return (array[0] == '\0');
+    }
+
+    void cut() {
+        int row, position, numChars;
+
+        std::cout << "Enter a row: ";
+        std::cin >> row;
+        std::cout << "Enter a position: ";
+        std::cin >> position;
+        std::cout << "Enter an amount of chars to cut (no more than 256): ";
+        std::cin >> numChars;
+
+        copy(row, position, numChars);
+        deleteText(row, position, numChars);
     }
 
 };
