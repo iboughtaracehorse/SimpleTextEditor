@@ -13,6 +13,7 @@ public:
 
         for (size_t i = 0; i < initialSize; ++i) {
             text[i] = new char[initialSize]();
+            memset(text[i], 0, initialSize);
         }
         strcpy_s(text[0], initialSize, "Hello World");
 
@@ -267,31 +268,41 @@ private:
 
         size_t newTextLength = strlen(newText);
         size_t textLength = strlen(text[row]);
+        
         if (textLength + newTextLength >= initialSize) {
             std::cout << "Insertion cancelled. No space.\n";
             return;
         }
 
         char temp[bufferSize];
-        for (size_t i = 0; i < index && i < textLength; ++i) {
-            temp[i] = text[row][i];
+
+        size_t i = 0;
+        for (; i < index; ++i) {
+            if (i < textLength) {
+                temp[i] = text[row][i];
+            }
+            else {
+                temp[i] = ' ';
+            }
         }
 
-        for (size_t i = 0; i < newTextLength; ++i) {
-            temp[index + i] = newText[i];
+        for (size_t j = 0; j < newTextLength; ++j, ++i) {
+            temp[i] = newText[j];
         }
 
-        for (size_t i = index; i < textLength; ++i) {
-            temp[newTextLength + i] = text[row][i];
+        for (size_t j = index; j < textLength; ++j, ++i) {
+            temp[i] = text[row][j];
         }
 
-        temp[textLength + newTextLength] = '\0';
+        temp[i] = '\0';
+
         strcpy_s(text[row], bufferSize, temp);
 
         std::cout << "Text inserted successfully.\n";
     }
 
     void deleteText() {
+
         const size_t bufferSize = 256;
         int row, index, length;
 
