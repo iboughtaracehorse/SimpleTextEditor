@@ -59,9 +59,11 @@ public:
 
             switch (command) {
             case COMMAND_APPEND:
+                copyText();
                 append();
                 break;
             case COMMAND_INSERT:
+                copyText();
                 insert();
                 break;
             case COMMAND_NEWLINE:
@@ -119,8 +121,8 @@ private:
     const size_t initialSize;
     char*** undoArray;
     char*** redoArray;
-    int undo;
-    int redo;
+    int undo = 0;
+    int redo = 0;
     const int maxStates = 3;
     const char* commandsToStrings[11] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo"};
 
@@ -142,7 +144,6 @@ private:
         std::cin.getline(newText, bufferSize);
 
         strcat_s(text[findEndOfText()], bufferSize, newText);
-        copyText();
         std::cout << "Your text was successfully appended!\n";
     }
 
@@ -307,8 +308,6 @@ private:
 
         strcpy_s(text[row], bufferSize, temp);
 
-        copyText();
-
         std::cout << "Text inserted successfully.\n";
     }
 
@@ -377,6 +376,11 @@ private:
 
     void undoCommand() {
 
+        if (undo < 0) {
+            std::cout << "You cannot undo further.\n";
+            return;
+        }
+
         if (redo + 1 >= maxStates) {
             for (size_t i = 0; i < initialSize; i++) {
                 delete[] redoArray[0][i];
@@ -391,7 +395,7 @@ private:
 
             for (size_t i = 0; i < initialSize; i++) {
                 redoArray[maxStates - 1][i] = new char[initialSize];
-                strcpy_s(redoArray[maxStates - 1][i], initialSize, text[i]);
+                strcpy_s(text[i], initialSize, redoArray[maxStates - 1][i]);
 
             }
         }
