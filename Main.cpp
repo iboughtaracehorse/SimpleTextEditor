@@ -22,6 +22,7 @@ public:
     }
 
     ~TextEditor() {
+
         for (size_t i = 0; i < initialSize; ++i) {
             delete[] text[i];
         }
@@ -67,13 +68,13 @@ public:
                 newLine();
                 break;
             case COMMAND_SAVE:
-                save();
+                saveToFile();
                 break;
             case COMMAND_LOAD:
-                load();
+                loadFromFile();
                 break;
             case COMMAND_SEARCH:
-                search();
+                searchSubstring();
                 break;
             case COMMAND_HELP:
                 help();
@@ -137,13 +138,15 @@ private:
         std::cin.getline(newText, bufferSize);
 
         strcat_s(text[findEndOfText()], bufferSize, newText);
+        copyText();
+        std::cout << "Your text was successfully appended!\n";
     }
 
     void newLine() {
         strcat_s(text[findEndOfText()], initialSize, "\n");
     }
 
-    void save() {
+    void saveToFile() {
         const size_t bufferSize = 256;
         char filePath[bufferSize];
 
@@ -167,7 +170,7 @@ private:
         }
     }
 
-    void load() {
+    void loadFromFile() {
         const size_t bufferSize = 256;
         char filePath[bufferSize];
         std::cout << "Input full path to file: ";
@@ -196,7 +199,7 @@ private:
         }
     }
 
-    void search() {
+    void searchSubstring() {
         const size_t bufferSize = 256;
 
         char substring[bufferSize];
@@ -309,7 +312,7 @@ private:
         std::cout << "Enter row number: ";
         std::cin >> row;
 
-        std::cout << "Enter start position: ";
+        std::cout << "Enter position: ";
         std::cin >> index;
 
         std::cout << "Enter number of characters to delete: ";
@@ -334,6 +337,36 @@ private:
 
         std::cout << "Text deleted successfully.\n";
     }
+
+    void copyText() {
+
+        if (undo + 1 >= maxStates) {
+
+            for (size_t i = 0; i < maxStates; i++) {
+                delete[] undoArray[0][i];
+            }
+            
+            delete[] undoArray[0];
+
+            for (int i = 1; i < maxStates; i++) {
+                undoArray[i - 1] = undoArray[i];
+            }
+
+            undo--;
+
+            }
+
+        undo++;
+
+        undoArray[undo] = new char* [initialSize];
+
+        for (size_t i = 0; i < initialSize; i++) {
+            undoArray[undo][i] = new char[initialSize];
+            strcpy_s(undoArray[undo][i], initialSize, text[i]);
+
+        }
+    }
+
 };
 
 int main() {
