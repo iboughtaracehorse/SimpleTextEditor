@@ -364,7 +364,7 @@ private:
             }
 
             for (size_t i = 0; i < newTextLength && (index + 1) < initialSize; i++) {
-                text[row][i] = newText[i];
+                text[row][index + i] = newText[i];
             }
 
             std::cout << "Successfully replaced!\n";
