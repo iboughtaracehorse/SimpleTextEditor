@@ -93,6 +93,9 @@ public:
             case COMMAND_REDO:
                 redoCommand();
                 break;
+            case COMMAND_COPY:
+                copy();
+                break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
                 return;
@@ -118,6 +121,7 @@ private:
         COMMAND_DELETE,
         COMMAND_UNDO,
         COMMAND_REDO,
+        COMMAND_COPY,
         COMMAND_UNKNOWN
     };
 
@@ -128,7 +132,7 @@ private:
     int undo = 0;
     int redo = 0;
     const int maxStates = 3;
-    const char* commandsToStrings[12] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo", "redo"};
+    const char* commandsToStrings[13] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo", "redo", "copy"};
 
 
     int getCommand(const char* userInput) {
@@ -231,7 +235,7 @@ private:
     void help() {
         std::cout << "\nAvailable commands:\n";
         std::cout << "  append   -- Append text to the end of the text\n";
-        std::cout << "  insert   -- Insert text at a specific position\n";
+        std::cout << "  insert   -- Insert text at a specific position. Has two modes(insert and replace)\n";
         std::cout << "  newline  -- Start a new line\n";
         std::cout << "  save     -- Save into the file\n";
         std::cout << "  load     -- Load an external file\n";
@@ -239,6 +243,7 @@ private:
         std::cout << "  search   -- Search for a specific word in the text\n";
         std::cout << "  delete   -- Delete a specified number of characters from a specific position\n";
         std::cout << "  undo     -- Undoes changes\n";
+        std::cout << "  redo     -- Redoes changes\n";
         std::cout << "  help     -- Display all available commands\n";
         std::cout << "  exit     -- Exit editor\n\n";
     }
@@ -498,6 +503,30 @@ private:
         redo--;
 
         std::cout << "Redo was successful.\n";
+    }
+
+    void copy() {
+        const size_t bufferSize = 256;
+        int row, position, numChars;
+
+
+        std::cout << "Enter a row: \n";
+        std::cin >> row;
+        std::cout << "Enter a position: \n";
+        std::cin >> position;
+        std::cout << "Enter an amount of chars to copy (no more than 256): \n";
+        std::cin >> numChars;
+
+        if (row < 0 || row >= initialSize) {
+            std::cout << "Invalid row!!\n";
+            return;
+        }
+
+        char temp[bufferSize];
+        strncpy_s(temp, bufferSize, text[row] + position, numChars);
+
+        std::cout << "Copied: " << temp << "\n";
+
     }
 
 };
