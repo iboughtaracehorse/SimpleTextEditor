@@ -45,6 +45,9 @@ public:
             --redo;
         }
         delete[] redoArray;
+
+        copied[0] = '\0';
+
     }
 
 
@@ -534,6 +537,12 @@ private:
     }
 
     void paste(const char * copiedText) {
+
+        if (isEmpty(copied)) {
+            std::cout << "Oops. Nothing to paste!!\n";
+            return;
+        }
+
         const size_t initialSize = 256;
         int row, position;
         std::cout << "Enter a row: \n";
@@ -544,7 +553,6 @@ private:
         size_t length = strlen(text[row]);
         size_t copiedLength = strlen(copiedText);
         size_t requiredLength = length + copiedLength;
-
 
         if (row < 0 || row >= initialSize) {
             std::cout << "Invalid row!!\n";
@@ -571,7 +579,12 @@ private:
 
  
         std::cout << "Pasted successfully!!\n";
+        copied[0] = '\0';
 
+    }
+
+    bool isEmpty(const char* array) {
+        return (array[0] == '\0');
     }
 
 };
