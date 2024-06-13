@@ -263,6 +263,10 @@ private:
         const size_t bufferSize = 256;
         char newText[bufferSize];
         int row, index;
+        int mode;
+
+        std::cout << "Choose mode (1 for insert, 2 for replace): ";
+        std::cin >> mode;
 
         std::cout << "Enter text to insert: ";
         std::cin.ignore();
@@ -281,38 +285,63 @@ private:
 
         size_t newTextLength = strlen(newText);
         size_t textLength = strlen(text[row]);
+
+        if (mode == 1) {
+
+
+            if (textLength + newTextLength >= initialSize) {
+                std::cout << "Insertion cancelled. No space.\n";
+                return;
+
+            }
+
+            char temp[bufferSize];
+
+            size_t i = 0;
+            for (; i < index; ++i) {
+                if (i < textLength) {
+                    temp[i] = text[row][i];
+                }
+                else {
+                    temp[i] = ' ';
+                }
+            }
+
+            for (size_t j = 0; j < newTextLength; ++j, ++i) {
+                temp[i] = newText[j];
+            }
+
+            for (size_t j = index; j < textLength; ++j, ++i) {
+                temp[i] = text[row][j];
+            }
+
+            temp[i] = '\0';
+
+            strcpy_s(text[row], bufferSize, temp);
+
+            std::cout << "Text inserted successfully.\n";
+        }
         
-        if (textLength + newTextLength >= initialSize) {
-            std::cout << "Insertion cancelled. No space.\n";
-            return;
+        else if (mode == 2) {
 
-        }
+            size_t maxLength = initialSize - index;
 
-        char temp[bufferSize];
-
-        size_t i = 0;
-        for (; i < index; ++i) {
-            if (i < textLength) {
-                temp[i] = text[row][i];
+            if (newTextLength > maxLength) {
+                std::cout << "Too long to replace!\n";
+                return;
             }
-            else {
-                temp[i] = ' ';
+
+            for (size_t i = 0; i < newTextLength && (index + 1) < initialSize; i++) {
+                text[row][i] = newText[i];
             }
+
+            std::cout << "Successfully replaced!\n";
         }
 
-        for (size_t j = 0; j < newTextLength; ++j, ++i) {
-            temp[i] = newText[j];
+        else {
+            std::cout << "Unknown mode!\n";
         }
-
-        for (size_t j = index; j < textLength; ++j, ++i) {
-            temp[i] = text[row][j];
-        }
-
-        temp[i] = '\0';
-
-        strcpy_s(text[row], bufferSize, temp);
-
-        std::cout << "Text inserted successfully.\n";
+        
     }
 
     void deleteText() {
