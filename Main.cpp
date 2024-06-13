@@ -85,6 +85,9 @@ public:
             case COMMAND_DELETE:
                 deleteText();
                 break;
+            case COMMAND_UNDO:
+                undoCommand();
+                break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
                 return;
@@ -108,6 +111,7 @@ private:
         COMMAND_EXIT,
         COMMAND_PRINT,
         COMMAND_DELETE,
+        COMMAND_UNDO,
         COMMAND_UNKNOWN
     };
 
@@ -118,7 +122,7 @@ private:
     int undo;
     int redo;
     const int maxStates = 3;
-    const char* commandsToStrings[10] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete" };
+    const char* commandsToStrings[11] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo"};
 
 
     int getCommand(const char* userInput) {
@@ -229,6 +233,7 @@ private:
         std::cout << "  print    -- Print all text to the console\n";
         std::cout << "  search   -- Search for a specific word in the text\n";
         std::cout << "  delete   -- Delete a specified number of characters from a specific position\n";
+        std::cout << "  undo     -- Undoes changes\n";
         std::cout << "  help     -- Display all available commands\n";
         std::cout << "  exit     -- Exit editor\n\n";
     }
@@ -275,6 +280,7 @@ private:
         if (textLength + newTextLength >= initialSize) {
             std::cout << "Insertion cancelled. No space.\n";
             return;
+
         }
 
         char temp[bufferSize];
@@ -300,6 +306,8 @@ private:
         temp[i] = '\0';
 
         strcpy_s(text[row], bufferSize, temp);
+
+        copyText();
 
         std::cout << "Text inserted successfully.\n";
     }
@@ -365,6 +373,47 @@ private:
             strcpy_s(undoArray[undo][i], initialSize, text[i]);
 
         }
+    }
+
+    void undoCommand() {
+
+        if (redo + 1 >= maxStates) {
+            for (size_t i = 0; i < initialSize; i++) {
+                delete[] redoArray[0][i];
+            }
+            delete[] redoArray[0];
+
+            for (int i = 1; i < maxStates; i++) {
+                redoArray[i - 1] = redoArray[i];
+            }
+
+            redoArray[maxStates - 1] = new char* [initialSize];
+
+            for (size_t i = 0; i < initialSize; i++) {
+                redoArray[maxStates - 1][i] = new char[initialSize];
+                strcpy_s(redoArray[maxStates - 1][i], initialSize, text[i]);
+
+            }
+        }
+
+        else {
+            redo++;
+            redoArray[redo] = new char* [initialSize];
+
+            for (size_t i = 0; i < initialSize; i++) {
+                redoArray[redo][i] = new char[initialSize];
+                strcpy_s(redoArray[redo][i], initialSize, text[i]);
+            }
+        }
+#
+        for (size_t i = 0; i < initialSize; i++) {
+            strcpy_s(text[i], initialSize, undoArray[undo][i]);
+            delete[] undoArray[undo][i];
+        }
+        delete[] undoArray[undo];
+        undo--;
+
+        std::cout << "Undo was successful.\n";
     }
 
 };
