@@ -96,6 +96,9 @@ public:
             case COMMAND_COPY:
                 copy();
                 break;
+            case COMMAND_PASTE:
+                paste(copied);
+                break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
                 return;
@@ -122,6 +125,7 @@ private:
         COMMAND_UNDO,
         COMMAND_REDO,
         COMMAND_COPY,
+        COMMAND_PASTE,
         COMMAND_UNKNOWN
     };
 
@@ -133,7 +137,8 @@ private:
     int redo = 0;
     const int maxStates = 3;
     char copied[256];
-    const char* commandsToStrings[13] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo", "redo", "copy"};
+    const char* commandsToStrings[14] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
+                                          "print", "delete", "undo", "redo", "copy", "paste"};
 
 
     int getCommand(const char* userInput) {
@@ -506,10 +511,9 @@ private:
         std::cout << "Redo was successful.\n";
     }
 
-    char copy() {
+    void copy() {
         const size_t bufferSize = 256;
         int row, position, numChars;
-
 
         std::cout << "Enter a row: \n";
         std::cin >> row;
@@ -527,24 +531,46 @@ private:
         copied[numChars] = '\0';
 
         std::cout << "Copied: " << copied << "\n";
-
-        
-
     }
 
-    void paste(char copiedText) {
-        const size_t bufferSize = 256;
+    void paste(const char * copiedText) {
+        const size_t initialSize = 256;
         int row, position;
         std::cout << "Enter a row: \n";
         std::cin >> row;
         std::cout << "Enter a position: \n";
         std::cin >> position;
+       
+        size_t length = strlen(text[row]);
+        size_t copiedLength = strlen(copiedText);
+        size_t requiredLength = length + copiedLength;
 
         if (row < 0 || row >= initialSize) {
             std::cout << "Invalid row!!\n";
             return;
         }
-       
+
+        if (position < 0 || position > length) {
+            std::cout << "Invalid position!!\n";
+            return;
+        }
+
+        if (copiedLength >= initialSize) {
+            std::cout << "Not enough place to paste text!!\n";
+            return;
+        }
+
+        for (size_t i = length; i >= position; i--) {
+            text[row][position + i] = text[row][i];
+        }
+
+        for (size_t i = 0; i < copiedLength; i++) {
+            text[row][i] = copied[i];
+        }
+
+ 
+        std::cout << "Pasted successfully!!\n";
+
     }
 
 };
