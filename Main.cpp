@@ -132,6 +132,7 @@ private:
     int undo = 0;
     int redo = 0;
     const int maxStates = 3;
+    char copied[256];
     const char* commandsToStrings[13] = { "append", "insert", "newline", "save", "load", "search", "help", "exit", "print", "delete", "undo", "redo", "copy"};
 
 
@@ -505,7 +506,7 @@ private:
         std::cout << "Redo was successful.\n";
     }
 
-    void copy() {
+    char copy() {
         const size_t bufferSize = 256;
         int row, position, numChars;
 
@@ -522,11 +523,28 @@ private:
             return;
         }
 
-        char temp[bufferSize];
-        strncpy_s(temp, bufferSize, text[row] + position, numChars);
+        strncpy_s(copied, bufferSize, text[row] + position, numChars);
+        copied[numChars] = '\0';
 
-        std::cout << "Copied: " << temp << "\n";
+        std::cout << "Copied: " << copied << "\n";
 
+        
+
+    }
+
+    void paste(char copiedText) {
+        const size_t bufferSize = 256;
+        int row, position;
+        std::cout << "Enter a row: \n";
+        std::cin >> row;
+        std::cout << "Enter a position: \n";
+        std::cin >> position;
+
+        if (row < 0 || row >= initialSize) {
+            std::cout << "Invalid row!!\n";
+            return;
+        }
+       
     }
 
 };
