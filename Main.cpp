@@ -545,6 +545,7 @@ private:
         size_t copiedLength = strlen(copiedText);
         size_t requiredLength = length + copiedLength;
 
+
         if (row < 0 || row >= initialSize) {
             std::cout << "Invalid row!!\n";
             return;
@@ -561,11 +562,11 @@ private:
         }
 
         for (size_t i = length; i >= position; i--) {
-            text[row][position + i] = text[row][i];
+            text[row][copiedLength + i] = text[row][i];
         }
 
         for (size_t i = 0; i < copiedLength; i++) {
-            text[row][i] = copied[i];
+            text[row][position + i] = copied[i];
         }
 
  
