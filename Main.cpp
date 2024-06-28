@@ -1,57 +1,92 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
-#include <cstring>
 
-class TextEditor {
+#include "Windows.h"
+#include "DynamicLibrary.h"
+
+
+
+
+class Text {
 
 public:
-    TextEditor(size_t initialSize)
-        : initialSize(initialSize), undo(-1), redo(-1) {
+    Text(size_t initialSize) : initialSize(initialSize) {
         text = new char* [initialSize];
-
         for (size_t i = 0; i < initialSize; ++i) {
             text[i] = new char[initialSize]();
-            memset(text[i], 0, initialSize);
         }
-        strcpy_s(text[0], initialSize, "Hello World");
-
         undoArray = new char** [maxStates];
         redoArray = new char** [maxStates];
     }
 
-    ~TextEditor() {
-
+    ~Text() {
         for (size_t i = 0; i < initialSize; ++i) {
             delete[] text[i];
         }
         delete[] text;
 
-        while (undo >= 0) {
-            for (size_t i = 0; i < initialSize; ++i) {
-                delete[] undoArray[undo][i];
-            }
-            delete[] undoArray[undo];
-            --undo;
-        }
-        delete[] undoArray;
-
-        while (redo >= 0) {
-            for (size_t i = 0; i < initialSize; ++i) {
-                delete[] redoArray[redo][i];
-            }
-            delete[] redoArray[redo];
-            --redo;
-        }
-        delete[] redoArray;
-
-        copied[0] = '\0';
-
+        clearArray(undoArray, undo);
+        clearArray(redoArray, redo);
     }
 
+    char** getText() const {
+        return text;
+    }
 
-    void main() {
+    size_t getInitialSize() const {
+        return initialSize;
+    }
+
+    char*** getUndoArray() {
+        return undoArray;
+    }
+
+    char*** getRedoArray() {
+        return redoArray;
+    }
+
+    int& getUndo() {
+        return undo;
+    }
+
+    int& getRedo() {
+        return redo;
+    }
+
+    int getMaxStates() const {
+        return maxStates;
+    }
+
+private:
+    char** text;
+    size_t initialSize;
+    char*** undoArray;
+    char*** redoArray;
+    int undo = 0;
+    int redo = 0;
+    const int maxStates = 3;
+
+    void clearArray(char*** array, int& index) {
+        while (index >= 0) {
+            for (size_t i = 0; i < initialSize; ++i) {
+                delete[] array[index][i];
+            }
+            delete[] array[index];
+            --index;
+        }
+        delete[] array;
+    }
+};
+
+class TextEditor {
+public:
+    TextEditor(size_t initialSize) : text(initialSize) {
+        currentText = text.getText();
+        strcpy_s(currentText[0], text.getInitialSize(), "Hello World");
+    }
+
+    void run() {
         char userInput[20];
 
         while (true) {
@@ -70,6 +105,7 @@ public:
                 insert();
                 break;
             case COMMAND_NEWLINE:
+                copyText();
                 newLine();
                 break;
             case COMMAND_SAVE:
@@ -88,14 +124,14 @@ public:
                 printAllText();
                 break;
             case COMMAND_DELETE:
+                copyText();
+
                 int row, position, numChars;
                 std::cout << "Enter row number: ";
                 std::cin >> row;
                 std::cout << "Enter position: ";
                 std::cin >> position;
                 std::cout << "Enter number of characters to delete: ";
-                std::cin >> numChars;
-                deleteText(row, position, numChars);
                 break;
             case COMMAND_UNDO:
                 undoCommand();
@@ -114,9 +150,11 @@ public:
                 copy(rowCopy, positionCopy, numCharsCopy);
                 break;
             case COMMAND_PASTE:
+                copyText();
                 paste(copied);
                 break;
             case COMMAND_CUT:
+                copyText();
                 cut();
                 break;
             case COMMAND_EXIT:
@@ -150,14 +188,10 @@ private:
         COMMAND_UNKNOWN
     };
 
-    char** text;
-    const size_t initialSize;
-    char*** undoArray;
-    char*** redoArray;
-    int undo = 0;
-    int redo = 0;
-    const int maxStates = 3;
     char copied[256];
+    Text text;
+    char** currentText;
+
     const char* commandsToStrings[15] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
                                           "print", "delete", "undo", "redo", "copy", "paste", "cut"};
 
@@ -183,7 +217,7 @@ private:
     }
 
     void newLine() {
-        strcat_s(text[findEndOfText()], initialSize, "\n");
+        strcat_s(currentText[findEndOfText()], text.getInitialSize(), "\n");
     }
 
     void saveToFile() {
@@ -194,19 +228,18 @@ private:
         std::cin.ignore();
         std::cin.getline(filePath, bufferSize);
 
-        FILE* file;
-        errno_t err = fopen_s(&file, filePath, "w");
-        if (err == 0 && file != nullptr) {
-            for (size_t i = 0; i < initialSize; ++i) {
-                if (text[i][0] != '\0') {
-                    fprintf(file, "%s\n", text[i]);
+        std::ofstream file(filePath);
+        if (file.is_open()) {
+            for (size_t i = 0; i < text.getInitialSize(); ++i) {
+                if (currentText[i][0] != '\0') {
+                    file << currentText[i] << "\n";
                 }
             }
-            fclose(file);
+            file.close();
             std::cout << "Your text was successfully saved!\n";
         }
         else {
-            std::cout << "Failed to create or open the file for writing. Error code: " << err << "\n";
+            std::cout << "Failed to open file for writing.\n";
         }
     }
 
@@ -217,25 +250,20 @@ private:
         std::cin.ignore();
         std::cin.getline(filePath, bufferSize);
 
-        FILE* file;
-        errno_t err = fopen_s(&file, filePath, "r");
-        if (file != nullptr) {
-            char line[bufferSize];
+        std::ifstream file(filePath);
+        if (file.is_open()) {
+            clearText();
+            std::string line;
             size_t lineIndex = 0;
-
-            while (lineIndex < initialSize && fgets(line, bufferSize, file) != nullptr) {
-                size_t len = strlen(line);
-                if (len > 0 && line[len - 1] == '\n') {
-                    line[len - 1] = '\0';
-                }
-                strncpy_s(text[lineIndex], initialSize, line, _TRUNCATE);
-                lineIndex++;
+            while (std::getline(file, line) && lineIndex < text.getInitialSize()) {
+                strncpy_s(currentText[lineIndex], text.getInitialSize(), line.c_str(), text.getInitialSize() - 1);
+                ++lineIndex;
             }
-            fclose(file);
-            std::cout << "Text was successfully loaded!\n";
+            file.close();
+            std::cout << "Text loaded successfully!\n";
         }
         else {
-            std::cout << "Failed to open the file.\n";
+            std::cout << "Failed to open file for reading.\n";
         }
     }
 
@@ -248,8 +276,8 @@ private:
         std::cin.getline(substring, bufferSize);
 
         bool found = false;
-        for (size_t i = 0; i < initialSize; ++i) {
-            if (strstr(text[i], substring) != nullptr) {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            if (strstr(currentText[i], substring) != nullptr) {
                 std::cout << "Found substring at row " << i << "\n";
                 found = true;
             }
@@ -271,22 +299,25 @@ private:
         std::cout << "  delete   -- Delete a specified number of characters from a specific position\n";
         std::cout << "  undo     -- Undoes changes\n";
         std::cout << "  redo     -- Redoes changes\n";
+        std::cout << "  copy     -- Copies text\n";
+        std::cout << "  paste    -- Pastes text\n";
+        std::cout << "  cut      -- Cuts text\n";
         std::cout << "  help     -- Display all available commands\n";
         std::cout << "  exit     -- Exit editor\n\n";
     }
 
     void printAllText() {
-        for (size_t i = 0; i < initialSize; ++i) {
-            if (text[i][0] != '\0') {
-                std::cout << text[i] << "\n";
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            if (currentText[i][0] != '\0') {
+                std::cout << currentText[i] << "\n";
             }
         }
     }
 
-    size_t findEndOfText() {
-        size_t endline = initialSize - 1;
-        while (endline > 0 && text[endline][0] == '\0') {
-            endline--;
+    size_t findEndOfText() const {
+        size_t endline = text.getInitialSize() - 1;
+        while (endline > 0 && currentText[endline][0] == '\0') {
+            --endline;
         }
         return endline;
     }
@@ -310,18 +341,18 @@ private:
         std::cout << "Enter position: ";
         std::cin >> index;
 
-        if (row < 0 || row >= initialSize || index < 0 || index >= initialSize) {
+        if (row < 0 || row >= text.getInitialSize() || index < 0 || index >= text.getInitialSize()) {
             std::cout << "Insertion cancelled: Invalid row or index\n";
             return;
         }
 
         size_t newTextLength = strlen(newText);
-        size_t textLength = strlen(text[row]);
+        size_t textLength = strlen(currentText[row]);
 
         if (mode == 1) {
 
 
-            if (textLength + newTextLength >= initialSize) {
+            if (textLength + newTextLength >= text.getInitialSize()) {
                 std::cout << "Insertion cancelled. No space.\n";
                 return;
 
@@ -332,7 +363,7 @@ private:
             size_t i = 0;
             for (; i < index; ++i) {
                 if (i < textLength) {
-                    temp[i] = text[row][i];
+                    temp[i] = currentText[row][i];
                 }
                 else {
                     temp[i] = ' ';
@@ -344,27 +375,27 @@ private:
             }
 
             for (size_t j = index; j < textLength; ++j, ++i) {
-                temp[i] = text[row][j];
+                temp[i] = currentText[row][j];
             }
 
             temp[i] = '\0';
 
-            strcpy_s(text[row], bufferSize, temp);
+            strcpy_s(currentText[row], bufferSize, temp);
 
             std::cout << "Text inserted successfully.\n";
         }
         
         else if (mode == 2) {
 
-            size_t maxLength = initialSize - index;
+            size_t maxLength = text.getInitialSize() - index;
 
             if (newTextLength > maxLength) {
                 std::cout << "Too long to replace!\n";
                 return;
             }
 
-            for (size_t i = 0; i < newTextLength && (index + 1) < initialSize; i++) {
-                text[row][index + i] = newText[i];
+            for (size_t i = 0; i < newTextLength && (index + 1) < text.getInitialSize(); i++) {
+                currentText[row][index + i] = newText[i];
             }
 
             std::cout << "Successfully replaced!\n";
@@ -377,152 +408,73 @@ private:
     }
 
     void deleteText(int row, int position, int numChars) {
-        const size_t bufferSize = 256;
+        const size_t initialSize = 256;
 
         if (row < 0 || row >= initialSize || position < 0 || position >= initialSize || numChars < 0) {
             std::cout << "Deletion cancelled: Invalid row, index, or length\n";
             return;
         }
 
-        size_t textLength = strlen(text[row]);
+        size_t textLength = strlen(currentText[row]);
         if (position + numChars > textLength) {
             std::cout << "Deletion cancelled: An amount of symbols to delete exceeds text length\n";
             return;
         }
 
         for (size_t i = position; i < textLength - numChars; ++i) {
-            text[row][i] = text[row][i + numChars];
+            currentText[row][i] = currentText[row][i + numChars];
         }
 
-        text[row][textLength - numChars] = '\0';
+        currentText[row][textLength - numChars] = '\0';
 
         std::cout << "Text deleted successfully.\n";
     }
 
-    void copyText() {
-
-        if (undo + 1 >= maxStates) {
-
-            for (size_t i = 0; i < maxStates; i++) {
-                delete[] undoArray[0][i];
-            }
-            
-            delete[] undoArray[0];
-
-            for (int i = 1; i < maxStates; i++) {
-                undoArray[i - 1] = undoArray[i];
-            }
-
-            undo--;
-
-            }
-
-        undo++;
-
-        undoArray[undo] = new char* [initialSize];
-
-        for (size_t i = 0; i < initialSize; i++) {
-            undoArray[undo][i] = new char[initialSize];
-            strcpy_s(undoArray[undo][i], initialSize, text[i]);
-
-        }
-    }
-
     void undoCommand() {
-
-        if (undo < 0) {
+        if (text.getUndo() < 0) {
             std::cout << "You cannot undo further.\n";
             return;
         }
 
-        if (redo + 1 >= maxStates) {
-            for (size_t i = 0; i < initialSize; i++) {
-                delete[] redoArray[0][i];
-            }
-            delete[] redoArray[0];
-
-            for (int i = 1; i < maxStates; i++) {
-                redoArray[i - 1] = redoArray[i];
-            }
-
-            redoArray[maxStates - 1] = new char* [initialSize];
-
-            for (size_t i = 0; i < initialSize; i++) {
-                redoArray[maxStates - 1][i] = new char[initialSize];
-                strcpy_s(text[i], initialSize, redoArray[maxStates - 1][i]);
-
-            }
+        if (text.getRedo() + 1 >= text.getMaxStates()) {
+            shiftRedoArray();
         }
-
         else {
-            redo++;
-            redoArray[redo] = new char* [initialSize];
-
-            for (size_t i = 0; i < initialSize; i++) {
-                redoArray[redo][i] = new char[initialSize];
-                strcpy_s(redoArray[redo][i], initialSize, text[i]);
-            }
+            text.getRedo()++;
+            allocateRedoArray();
         }
 
-#
-        for (size_t i = 0; i < initialSize; i++) {
-            strcpy_s(text[i], initialSize, undoArray[undo][i]);
-            delete[] undoArray[undo][i];
-        }
-        delete[] undoArray[undo];
-        undo--;
+        copyCurrentToUndo();
+        copyUndoToCurrent();
+        text.getUndo()--;
 
         std::cout << "Undo was successful.\n";
-
-    }void redoCommand() {
-
-        if (redo < 0) {
+    }
+    
+    void redoCommand() {
+        if (text.getRedo() < 0) {
             std::cout << "You cannot redo further.\n";
             return;
         }
 
-        if (undo + 1 >= maxStates) {
-            for (size_t i = 0; i < initialSize; i++) {
-                delete[] undoArray[0][i];
-            }
-            delete[] undoArray[0];
-
-            for (int i = 1; i < maxStates; i++) {
-                undoArray[i - 1] = undoArray[i];
-            }
-
-            undoArray[maxStates - 1] = new char* [initialSize];
-
-            for (size_t i = 0; i < initialSize; i++) {
-                undoArray[maxStates - 1][i] = new char[initialSize];
-                strcpy_s(text[i], initialSize, undoArray[maxStates - 1][i]);
-
-            }
+        if (text.getUndo() + 1 >= text.getMaxStates()) {
+            shiftUndoArray();
         }
-
         else {
-            undo++;
-            undoArray[undo] = new char* [initialSize];
-
-            for (size_t i = 0; i < initialSize; i++) {
-                undoArray[undo][i] = new char[initialSize];
-                strcpy_s(undoArray[undo][i], initialSize, text[i]);
-            }
+            text.getUndo()++;
+            allocateUndoArray();
         }
 
-
-        for (size_t i = 0; i < initialSize; i++) {
-            strcpy_s(text[i], initialSize, redoArray[redo][i]);
-            delete[] redoArray[redo][i];
-        }
-        delete[] redoArray[redo];
-        redo--;
+        copyCurrentToRedo();
+        copyRedoToCurrent();
+        text.getRedo()--;
 
         std::cout << "Redo was successful.\n";
     }
 
+
     void copy(int row, int position, int numChars) {
-        const size_t bufferSize = 256;
+        const size_t initialSize = 256;
 
 
         if (row < 0 || row >= initialSize) {
@@ -530,14 +482,13 @@ private:
             return;
         }
 
-        strncpy_s(copied, bufferSize, text[row] + position, numChars);
+        strncpy_s(copied, initialSize, currentText[row] + position, numChars);
         copied[numChars] = '\0';
 
         std::cout << "Copied: " << copied << "\n";
     }
 
-    void paste(const char * copiedText) {
-
+    void paste() {
         if (isEmpty(copied)) {
             std::cout << "Oops. Nothing to paste!!\n";
             return;
@@ -549,9 +500,9 @@ private:
         std::cin >> row;
         std::cout << "Enter a position: \n";
         std::cin >> position;
-       
-        size_t length = strlen(text[row]);
-        size_t copiedLength = strlen(copiedText);
+
+        size_t length = strlen(currentText[row]);
+        size_t copiedLength = strlen(copied);
         size_t requiredLength = length + copiedLength;
 
         if (row < 0 || row >= initialSize) {
@@ -569,18 +520,11 @@ private:
             return;
         }
 
-        for (size_t i = length; i >= position; i--) {
-            text[row][copiedLength + i] = text[row][i];
-        }
+        memmove(currentText[row] + position + copiedLength, currentText[row] + position, length - position + 1);
+        memcpy(currentText[row] + position, copied, copiedLength);
 
-        for (size_t i = 0; i < copiedLength; i++) {
-            text[row][position + i] = copied[i];
-        }
-
- 
         std::cout << "Pasted successfully!!\n";
         copied[0] = '\0';
-
     }
 
     bool isEmpty(const char* array) {
@@ -601,10 +545,123 @@ private:
         deleteText(row, position, numChars);
     }
 
-};
+    void shiftUndoArray() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            delete[] text.getUndoArray()[0][i];
+        }
+        delete[] text.getUndoArray()[0];
+
+        for (int i = 1; i < text.getMaxStates(); ++i) {
+            text.getUndoArray()[i - 1] = text.getUndoArray()[i];
+        }
+
+        text.getUndoArray()[text.getMaxStates() - 1] = new char* [text.getInitialSize()];
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            text.getUndoArray()[text.getMaxStates() - 1][i] = new char[text.getInitialSize()];
+        }
+    }
+
+    void allocateUndoArray() {
+        text.getUndoArray()[text.getUndo()] = new char* [text.getInitialSize()];
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            text.getUndoArray()[text.getUndo()][i] = new char[text.getInitialSize()];
+        }
+    }
+
+    void copyCurrentToUndo() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            strcpy_s(text.getUndoArray()[text.getUndo()][i], text.getInitialSize(), currentText[i]);
+        }
+    }
+
+    void copyUndoToCurrent() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            strcpy_s(currentText[i], text.getInitialSize(), text.getUndoArray()[text.getUndo()][i]);
+        }
+    }
+
+    void shiftRedoArray() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            delete[] text.getRedoArray()[0][i];
+        }
+        delete[] text.getRedoArray()[0];
+
+        for (int i = 1; i < text.getMaxStates(); ++i) {
+            text.getRedoArray()[i - 1] = text.getRedoArray()[i];
+        }
+
+        text.getRedoArray()[text.getMaxStates() - 1] = new char* [text.getInitialSize()];
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            text.getRedoArray()[text.getMaxStates() - 1][i] = new char[text.getInitialSize()];
+        }
+    }
+
+    void allocateRedoArray() {
+        text.getRedoArray()[text.getRedo()] = new char* [text.getInitialSize()];
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            text.getRedoArray()[text.getRedo()][i] = new char[text.getInitialSize()];
+        }
+    }
+
+    void copyCurrentToRedo() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            strcpy_s(text.getRedoArray()[text.getRedo()][i], text.getInitialSize(), currentText[i]);
+        }
+    }
+
+    void copyRedoToCurrent() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            strcpy_s(currentText[i], text.getInitialSize(), text.getRedoArray()[text.getRedo()][i]);
+        }
+    }
+}; 
+
+\
+
+
 
 int main() {
-    TextEditor editor(256);
-    editor.main();
+
+    const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+
+    HINSTANCE ENCRYPT = LoadLibraryA(dllPath);
+    if (ENCRYPT == NULL) {
+
+        DWORD error = GetLastError();
+
+        printf("Could not load\n");
+        return -1;
+    }
+
+    typedef char* (*EncryptFunctionType)(const char* rawText, int key);
+    typedef void (*FreeFunctionType)(char* ptr);
+    typedef char* (*DecryptFunctionType)(const char* rawText, int key);
+
+
+
+    EncryptFunctionType encrypt = (EncryptFunctionType)GetProcAddress(ENCRYPT, "encrypt");
+    if (!encrypt) {
+        printf("Could not locate the function\n");
+        FreeLibrary(ENCRYPT);
+        return -1;
+    }
+
+    FreeFunctionType free_encrypted = (FreeFunctionType)GetProcAddress(ENCRYPT, "free_encrypted");
+    if (!free_encrypted) {
+        printf("Could not locate the function2\n");
+        FreeLibrary(ENCRYPT);
+        return -1;
+    }
+
+    DecryptFunctionType decrypt = (DecryptFunctionType)GetProcAddress(ENCRYPT, "decrypt");
+    if (!decrypt) {
+        printf("Could not locate the function3\n");
+        FreeLibrary(ENCRYPT);
+        return -1;
+    }
+
+    const size_t initialSize = 256;
+    TextEditor editor(initialSize);
+    editor.run();
     return 0;
 }
