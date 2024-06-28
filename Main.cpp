@@ -6,10 +6,7 @@
 #include "DynamicLibrary.h"
 
 
-
-
 class Text {
-
 public:
     Text(size_t initialSize) : initialSize(initialSize) {
         text = new char* [initialSize];
@@ -28,6 +25,17 @@ public:
 
         clearArray(undoArray, undo);
         clearArray(redoArray, redo);
+    }
+
+    void clearArray(char*** array, int& index) {
+        while (index >= 0) {
+            for (size_t i = 0; i < initialSize; ++i) {
+                delete[] array[index][i];
+            }
+            delete[] array[index];
+            --index;
+        }
+        delete[] array;
     }
 
     char** getText() const {
@@ -67,16 +75,6 @@ private:
     int redo = 0;
     const int maxStates = 3;
 
-    void clearArray(char*** array, int& index) {
-        while (index >= 0) {
-            for (size_t i = 0; i < initialSize; ++i) {
-                delete[] array[index][i];
-            }
-            delete[] array[index];
-            --index;
-        }
-        delete[] array;
-    }
 };
 
 class TextEditor {
@@ -151,7 +149,7 @@ public:
                 break;
             case COMMAND_PASTE:
                 copyText();
-                paste(copied);
+                paste();
                 break;
             case COMMAND_CUT:
                 copyText();
@@ -212,7 +210,7 @@ private:
         std::cin.ignore();
         std::cin.getline(newText, bufferSize);
 
-        strcat_s(text[findEndOfText()], bufferSize, newText);
+        strcat_s(currentText[findEndOfText()], bufferSize, newText);
         std::cout << "Your text was successfully appended!\n";
     }
 
@@ -228,18 +226,19 @@ private:
         std::cin.ignore();
         std::cin.getline(filePath, bufferSize);
 
-        std::ofstream file(filePath);
-        if (file.is_open()) {
+        FILE* file;
+        errno_t err = fopen_s(&file, filePath, "w");
+        if (err == 0 && file != nullptr) {
             for (size_t i = 0; i < text.getInitialSize(); ++i) {
                 if (currentText[i][0] != '\0') {
-                    file << currentText[i] << "\n";
+                    fprintf(file, "%s\n", currentText[i]);
                 }
             }
-            file.close();
+            fclose(file);
             std::cout << "Your text was successfully saved!\n";
         }
         else {
-            std::cout << "Failed to open file for writing.\n";
+            std::cout << "Failed to create or open the file for writing. Error code: " << err << "\n";
         }
     }
 
@@ -250,22 +249,28 @@ private:
         std::cin.ignore();
         std::cin.getline(filePath, bufferSize);
 
-        std::ifstream file(filePath);
-        if (file.is_open()) {
-            clearText();
-            std::string line;
+        FILE* file;
+        errno_t err = fopen_s(&file, filePath, "r");
+        if (file != nullptr) {
+            char line[bufferSize];
             size_t lineIndex = 0;
-            while (std::getline(file, line) && lineIndex < text.getInitialSize()) {
-                strncpy_s(currentText[lineIndex], text.getInitialSize(), line.c_str(), text.getInitialSize() - 1);
-                ++lineIndex;
+
+            while (lineIndex < text.getInitialSize() && fgets(line, bufferSize, file) != nullptr) {
+                size_t len = strlen(line);
+                if (len > 0 && line[len - 1] == '\n') {
+                    line[len - 1] = '\0';
+                }
+                strncpy_s(currentText[lineIndex], text.getInitialSize(), line, _TRUNCATE);
+                lineIndex++;
             }
-            file.close();
-            std::cout << "Text loaded successfully!\n";
+            fclose(file);
+            std::cout << "Text was successfully loaded!\n";
         }
         else {
-            std::cout << "Failed to open file for reading.\n";
+            std::cout << "Failed to open the file.\n";
         }
     }
+
 
     void searchSubstring() {
         const size_t bufferSize = 256;
@@ -450,7 +455,7 @@ private:
 
         std::cout << "Undo was successful.\n";
     }
-    
+
     void redoCommand() {
         if (text.getRedo() < 0) {
             std::cout << "You cannot redo further.\n";
@@ -471,6 +476,32 @@ private:
 
         std::cout << "Redo was successful.\n";
     }
+
+
+    void copyText() {
+        if (text.getUndo() + 1 >= text.getMaxStates()) {
+            for (size_t i = 0; i < text.getInitialSize(); i++) {
+                delete[] text.getUndoArray()[0][i];
+            }
+            delete[] text.getUndoArray()[0];
+
+            for (int i = 1; i < text.getMaxStates(); i++) {
+                text.getUndoArray()[i - 1] = text.getUndoArray()[i];
+            }
+
+            text.getUndo()--; 
+        }
+
+        text.getUndo()++; 
+
+        text.getUndoArray()[text.getUndo()] = new char* [text.getInitialSize()];
+
+        for (size_t i = 0; i < text.getInitialSize(); i++) {
+            text.getUndoArray()[text.getUndo()][i] = new char[text.getInitialSize()];
+            strcpy_s(text.getUndoArray()[text.getUndo()][i], text.getInitialSize(), currentText[i]);
+        }
+    }
+
 
 
     void copy(int row, int position, int numChars) {
@@ -559,6 +590,13 @@ private:
         for (size_t i = 0; i < text.getInitialSize(); ++i) {
             text.getUndoArray()[text.getMaxStates() - 1][i] = new char[text.getInitialSize()];
         }
+    }
+
+    void clearText() {
+        for (size_t i = 0; i < text.getInitialSize(); ++i) {
+            currentText[i][0] = '\0';
+        }
+        std::cout << "Text cleared.\n";
     }
 
     void allocateUndoArray() {
