@@ -155,6 +155,11 @@ public:
                 copyText();
                 cut();
                 break;
+            case COMMAND_ENCRYPT:
+                encryptInput(currentText);
+                break;
+            case COMMAND_DECRYPT:
+                break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
                 return;
@@ -183,6 +188,8 @@ private:
         COMMAND_COPY,
         COMMAND_PASTE,
         COMMAND_CUT,
+        COMMAND_ENCRYPT,
+        COMMAND_DECRYPT,
         COMMAND_UNKNOWN
     };
 
@@ -190,8 +197,8 @@ private:
     Text text;
     char** currentText;
 
-    const char* commandsToStrings[15] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
-                                          "print", "delete", "undo", "redo", "copy", "paste", "cut"};
+    const char* commandsToStrings[17] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
+                                          "print", "delete", "undo", "redo", "copy", "paste", "cut", "encrypt", "decrypt"};
 
 
     int getCommand(const char* userInput) {
@@ -652,49 +659,105 @@ private:
             strcpy_s(currentText[i], text.getInitialSize(), text.getRedoArray()[text.getRedo()][i]);
         }
     }
-}; 
 
-\
+    void encryptInput(char** text) {
+        const size_t initialSize = 256;
+
+        int key;
+        std::cout << "Enter a key: \n";
+        std::cin >> key;
+
+        for (size_t i = 0; i < initialSize; ++i) {
+            char* encryptedText = encrypt(currentText[i], key);
+            if (encryptedText != nullptr) {
+                std::cout << "Encrypted text: " << encryptedText << "\n";
+                free(encryptedText);
+            }
+        }
+    }
 
 
+    char* encrypt(const char* rawText, int key) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cout << "Dll connection failed!\n";
+            return nullptr;
+        }
+
+        typedef char* (__cdecl* ENCRYPT_FUNC)(const char*, int);
+        ENCRYPT_FUNC encryptFunc = (ENCRYPT_FUNC)GetProcAddress(hDLL, "encrypt");
+
+        if (encryptFunc == nullptr) {
+            std::cerr << "Encryption function not found in the DLL.\n";
+            FreeLibrary(hDLL);
+            return nullptr;
+        }
+
+        char* encryptedText = encryptFunc(rawText, key);
+        FreeLibrary(hDLL);
+        return encryptedText;
+    }
+
+
+    char* decrypt(const char* rawText, int key) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cerr << "Dll connection failed!\n";
+            return nullptr;
+        }
+
+        typedef char* (__cdecl* DECRYPT_FUNC)(const char*, int);
+        DECRYPT_FUNC decryptFunc = (DECRYPT_FUNC)GetProcAddress(hDLL, "decrypt");
+
+        if (decryptFunc == nullptr) {
+            std::cerr << "Decryption function not found in the DLL.\n";
+            FreeLibrary(hDLL);
+            return nullptr;
+        }
+
+        char* decryptedText = decryptFunc(rawText, key);
+        FreeLibrary(hDLL);
+        return decryptedText;
+    }
+
+    void freeEncryptedText(char* ptr) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cerr << "Dll connection failed!\n";
+            return;
+        }
+
+        typedef void(__cdecl* FREE_FUNC)(char*);
+        FREE_FUNC freeFunc = (FREE_FUNC)GetProcAddress(hDLL, "free_encrypted");
+
+        if (freeFunc == nullptr) {
+            std::cerr << "Free function not found in the DLL.\n";
+        }
+        else {
+            freeFunc(ptr);
+        }
+
+        FreeLibrary(hDLL);
+    }
+
+};
 
 int main() {
 
     const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
 
     HINSTANCE ENCRYPT = LoadLibraryA(dllPath);
-    if (ENCRYPT == NULL) {
-
-        DWORD error = GetLastError();
-
-        printf("Could not load\n");
-        return -1;
+    if (ENCRYPT != nullptr) {
+        std::cout << "Dll was successfully connected!\n";
     }
-
-    typedef char* (*EncryptFunctionType)(const char* rawText, int key);
-    typedef void (*FreeFunctionType)(char* ptr);
-    typedef char* (*DecryptFunctionType)(const char* rawText, int key);
-
-
-
-    EncryptFunctionType encrypt = (EncryptFunctionType)GetProcAddress(ENCRYPT, "encrypt");
-    if (!encrypt) {
-        printf("Could not locate the function\n");
-        FreeLibrary(ENCRYPT);
-        return -1;
-    }
-
-    FreeFunctionType free_encrypted = (FreeFunctionType)GetProcAddress(ENCRYPT, "free_encrypted");
-    if (!free_encrypted) {
-        printf("Could not locate the function2\n");
-        FreeLibrary(ENCRYPT);
-        return -1;
-    }
-
-    DecryptFunctionType decrypt = (DecryptFunctionType)GetProcAddress(ENCRYPT, "decrypt");
-    if (!decrypt) {
-        printf("Could not locate the function3\n");
-        FreeLibrary(ENCRYPT);
+    else {
+        std::cout << "Dll connection failed!\n";
         return -1;
     }
 
@@ -703,3 +766,4 @@ int main() {
     editor.run();
     return 0;
 }
+ 
