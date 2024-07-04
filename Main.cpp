@@ -156,9 +156,12 @@ public:
                 cut();
                 break;
             case COMMAND_ENCRYPT:
+                copyText();
                 encryptInput(currentText);
                 break;
             case COMMAND_DECRYPT:
+                copyText();
+                decryptInput(currentText);
                 break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
@@ -669,13 +672,27 @@ private:
 
         for (size_t i = 0; i < initialSize; ++i) {
             char* encryptedText = encrypt(currentText[i], key);
-            if (encryptedText != nullptr) {
+            if (encryptedText[0] != '\0') {
                 std::cout << "Encrypted text: " << encryptedText << "\n";
-                free(encryptedText);
+                freeEncryptedText(encryptedText);
             }
         }
     }
+    void decryptInput(char** text) {
+        const size_t initialSize = 256;
 
+        int key;
+        std::cout << "Enter a key: \n";
+        std::cin >> key;
+
+        for (size_t i = 0; i < initialSize; ++i) {
+            char* decryptedText = decrypt(currentText[i], key);
+            if (decryptedText[0] != '\0') {
+                std::cout << "Decrypted text: " << decryptedText << "\n";
+                freeEncryptedText(decryptedText);
+            }
+        }
+    }
 
     char* encrypt(const char* rawText, int key) {
         const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
@@ -720,6 +737,7 @@ private:
         }
 
         char* decryptedText = decryptFunc(rawText, key);
+
         FreeLibrary(hDLL);
         return decryptedText;
     }
@@ -749,18 +767,6 @@ private:
 };
 
 int main() {
-
-    const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
-
-    HINSTANCE ENCRYPT = LoadLibraryA(dllPath);
-    if (ENCRYPT != nullptr) {
-        std::cout << "Dll was successfully connected!\n";
-    }
-    else {
-        std::cout << "Dll connection failed!\n";
-        return -1;
-    }
-
     const size_t initialSize = 256;
     TextEditor editor(initialSize);
     editor.run();
