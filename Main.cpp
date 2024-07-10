@@ -5,6 +5,99 @@
 #include "Windows.h"
 #include "DynamicLibrary.h"
 
+class CaesarCipher {
+public:
+    CaesarCipher() {}
+
+    char* encrypt(char* inputText) {
+        int key = 1;
+        /*std::cout << "Enter a key: ";
+        std::cin >> key;*/
+
+        return encryptT(inputText, key);
+    }
+
+    char* decrypt(char* inputText) {
+        int key = 1;
+        /*std::cout << "Enter a key: ";
+        std::cin >> key;*/
+
+        return decryptT(inputText, key);
+    }
+
+
+private:
+
+    char* encryptT(const char* rawText, int key) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cerr << "DLL connection failed!\n";
+            return nullptr;
+        }
+
+        typedef char* (__cdecl* ENCRYPT_FUNC)(const char*, int);
+        ENCRYPT_FUNC encryptFunc = (ENCRYPT_FUNC)GetProcAddress(hDLL, "encrypt");
+
+        if (encryptFunc == nullptr) {
+            std::cerr << "Encryption function not found in the DLL.\n";
+            FreeLibrary(hDLL);
+            return nullptr;
+        }
+
+        char* encryptedText = encryptFunc(rawText, key);
+        FreeLibrary(hDLL);
+        return encryptedText;
+    }
+
+    char* decryptT(const char* rawText, int key) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cerr << "Dll connection failed!\n";
+            return nullptr;
+        }
+
+        typedef char* (__cdecl* DECRYPT_FUNC)(const char*, int);
+        DECRYPT_FUNC decryptFunc = (DECRYPT_FUNC)GetProcAddress(hDLL, "decrypt");
+
+        if (decryptFunc == nullptr) {
+            std::cerr << "Decryption function not found in the DLL.\n";
+            FreeLibrary(hDLL);
+            return nullptr;
+        }
+
+        char* decryptedText = decryptFunc(rawText, key);
+        freeEncryptedText(decryptedText);
+        FreeLibrary(hDLL);
+        return decryptedText;
+    }
+
+    void freeEncryptedText(char* ptr) {
+        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
+        HINSTANCE hDLL = LoadLibraryA(dllPath);
+
+        if (hDLL == nullptr) {
+            std::cerr << "Dll connection failed!\n";
+            return;
+        }
+
+        typedef void(__cdecl* FREE_FUNC)(char*);
+        FREE_FUNC freeFunc = (FREE_FUNC)GetProcAddress(hDLL, "free_encrypted");
+
+        if (freeFunc == nullptr) {
+            std::cerr << "Free function not found in the DLL.\n";
+        }
+        else {
+            freeFunc(ptr);
+        }
+
+        FreeLibrary(hDLL);
+    }
+
+};
 
 class Text {
 public:
@@ -157,11 +250,13 @@ public:
                 break;
             case COMMAND_ENCRYPT:
                 copyText();
-                encryptInput(currentText);
+                encryptText();
+                
                 break;
             case COMMAND_DECRYPT:
                 copyText();
-                decryptInput(currentText);
+                decryptText();
+
                 break;
             case COMMAND_EXIT:
                 std::cout << "Exiting...\n";
@@ -199,10 +294,10 @@ private:
     char copied[256];
     Text text;
     char** currentText;
+    CaesarCipher caesar;
 
     const char* commandsToStrings[17] = { "append", "insert", "newline", "save", "load", "search", "help", "exit",
                                           "print", "delete", "undo", "redo", "copy", "paste", "cut", "encrypt", "decrypt"};
-
 
     int getCommand(const char* userInput) {
         for (size_t i = 0; i < sizeof(commandsToStrings) / sizeof(commandsToStrings[0]); ++i) {
@@ -280,7 +375,6 @@ private:
             std::cout << "Failed to open the file.\n";
         }
     }
-
 
     void searchSubstring() {
         const size_t bufferSize = 256;
@@ -487,7 +581,6 @@ private:
         std::cout << "Redo was successful.\n";
     }
 
-
     void copyText() {
         if (text.getUndo() + 1 >= text.getMaxStates()) {
             for (size_t i = 0; i < text.getInitialSize(); i++) {
@@ -511,8 +604,6 @@ private:
             strcpy_s(text.getUndoArray()[text.getUndo()][i], text.getInitialSize(), currentText[i]);
         }
     }
-
-
 
     void copy(int row, int position, int numChars) {
         const size_t initialSize = 256;
@@ -663,112 +754,34 @@ private:
         }
     }
 
-    void encryptInput(char** text) {
-        const size_t initialSize = 256;
+    void encryptText() {
 
-        int key;
-        std::cout << "Enter a key: \n";
-        std::cin >> key;
+        size_t initialSize = 256;
+        for (size_t i = 0; i < initialSize; i++) {
 
-        for (size_t i = 0; i < initialSize; ++i) {
-            char* encryptedText = encrypt(currentText[i], key);
-            if (encryptedText[0] != '\0') {
-                std::cout << "Encrypted text: " << encryptedText << "\n";
-                freeEncryptedText(encryptedText);
-            }
-        }
-    }
-    void decryptInput(char** text) {
-        const size_t initialSize = 256;
-
-        int key;
-        std::cout << "Enter a key: \n";
-        std::cin >> key;
-
-        for (size_t i = 0; i < initialSize; ++i) {
-            char* decryptedText = decrypt(currentText[i], key);
-            if (decryptedText[0] != '\0') {
-                std::cout << "Decrypted text: " << decryptedText << "\n";
-                freeEncryptedText(decryptedText);
+            if (currentText[i][0] != NULL) {
+                currentText[i] = caesar.encrypt(currentText[i]);
             }
         }
     }
 
-    char* encrypt(const char* rawText, int key) {
-        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
-        HINSTANCE hDLL = LoadLibraryA(dllPath);
+    void decryptText() {
 
-        if (hDLL == nullptr) {
-            std::cout << "Dll connection failed!\n";
-            return nullptr;
+        size_t initialSize = 256;
+        for (size_t i = 0; i < initialSize; i++) {
+            if (currentText[i][0] != NULL) {
+                currentText[i] = caesar.decrypt(currentText[i]);
+            }
         }
-
-        typedef char* (__cdecl* ENCRYPT_FUNC)(const char*, int);
-        ENCRYPT_FUNC encryptFunc = (ENCRYPT_FUNC)GetProcAddress(hDLL, "encrypt");
-
-        if (encryptFunc == nullptr) {
-            std::cerr << "Encryption function not found in the DLL.\n";
-            FreeLibrary(hDLL);
-            return nullptr;
-        }
-
-        char* encryptedText = encryptFunc(rawText, key);
-        FreeLibrary(hDLL);
-        return encryptedText;
     }
-
-
-    char* decrypt(const char* rawText, int key) {
-        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
-        HINSTANCE hDLL = LoadLibraryA(dllPath);
-
-        if (hDLL == nullptr) {
-            std::cerr << "Dll connection failed!\n";
-            return nullptr;
-        }
-
-        typedef char* (__cdecl* DECRYPT_FUNC)(const char*, int);
-        DECRYPT_FUNC decryptFunc = (DECRYPT_FUNC)GetProcAddress(hDLL, "decrypt");
-
-        if (decryptFunc == nullptr) {
-            std::cerr << "Decryption function not found in the DLL.\n";
-            FreeLibrary(hDLL);
-            return nullptr;
-        }
-
-        char* decryptedText = decryptFunc(rawText, key);
-
-        FreeLibrary(hDLL);
-        return decryptedText;
-    }
-
-    void freeEncryptedText(char* ptr) {
-        const char* dllPath = "C:\\Users\\dariy\\Documents\\GitHub\\ENCRYPT3\\encrypt.dll";
-        HINSTANCE hDLL = LoadLibraryA(dllPath);
-
-        if (hDLL == nullptr) {
-            std::cerr << "Dll connection failed!\n";
-            return;
-        }
-
-        typedef void(__cdecl* FREE_FUNC)(char*);
-        FREE_FUNC freeFunc = (FREE_FUNC)GetProcAddress(hDLL, "free_encrypted");
-
-        if (freeFunc == nullptr) {
-            std::cerr << "Free function not found in the DLL.\n";
-        }
-        else {
-            freeFunc(ptr);
-        }
-
-        FreeLibrary(hDLL);
-    }
-
 };
+
 
 int main() {
     const size_t initialSize = 256;
     TextEditor editor(initialSize);
+    CaesarCipher caesar;
+
     editor.run();
     return 0;
 }
